@@ -1,54 +1,55 @@
-# C++ objects and libs
-*.slo
-*.lo
+# Build directories and files
+/build/*
+/CMakeFiles
+CMakeLists.txt.user
+/CMakeCache.txt
+/cmake_install.cmake
+Makefile
+*.ninja
+*.rules
+
+# Qt generated files
+*.pro.user
+*.autosave
+*.qrc
+*.moc
+*.obj
 *.o
-*.a
-*.la
-*.lai
 *.so
-*.so.*
 *.dll
 *.dylib
+*.exe
+*.a
+*.lib
 
-# Qt-es
-object_script.*.Release
-object_script.*.Debug
-*_plugin_import.cpp
-/.qmake.cache
-/.qmake.stash
-*.pro.user
-*.pro.user.*
-*.qbs.user
-*.qbs.user.*
-*.moc
+# Generated code (moc, uic, etc.)
 moc_*.cpp
-moc_*.h
-qrc_*.cpp
 ui_*.h
-*.qmlc
-*.jsc
-Makefile*
-*build-*
-*.qm
-*.prl
+qrc_*.cpp
 
-# Qt unit tests
-target_wrapper.*
-
-# QtCreator
+# Qt Creator-specific files
+*.pro.user.*
+*.creator*
 *.autosave
 
-# QtCreator Qml
-*.qmlproject.user
-*.qmlproject.user.*
+# IDE-specific files
+.idea/
+.vscode/
+*.sln
+*.vcxproj
+*.xcworkspace
+*.xcuserstate
 
-# QtCreator CMake
-CMakeLists.txt.user*
+# OS-specific files
+.DS_Store
+Thumbs.db
 
-# QtCreator 4.8< compilation database
-compile_commands.json
+# Log files
+*.log
 
-# QtCreator local machine specific files for imported projects
-*creator.user*
-
-*_qmlcache.qrc
+# Environment-specific settings
+.env
+*.key
+*.pem
+*.crt
+config.json
