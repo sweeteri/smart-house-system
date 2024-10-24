@@ -1,5 +1,7 @@
 # Build directories and files
 /build/*
+SmartHouseSystemServer/build/
+SmartHouseSystem/build/
 /CMakeFiles
 CMakeLists.txt.user
 /CMakeCache.txt
