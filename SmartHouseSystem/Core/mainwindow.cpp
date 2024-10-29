@@ -25,7 +25,13 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     connect(addDeviceButton, &QPushButton::clicked, this, &MainWindow::onAddDeviceButtonClicked);
 
     scenarioButton = new QPushButton("Сценарии", this);
+    connect(scenarioButton, &QPushButton::clicked, this, &MainWindow::onScenarioButtonClicked);
+
+    addScenarioButton = new QPushButton("Добавить сценарий", this);
+    connect(addScenarioButton, &QPushButton::clicked, this, &MainWindow::onAddScenarioButtonClicked);
+
     allDevicesButton = new QPushButton("Все устройства", this);
+    connect(allDevicesButton, &QPushButton::clicked, this, &MainWindow::onAllDevicesButtonClicked);
 
     addDeviceButton->setFixedSize(200, 50);
     scenarioButton->setFixedSize(200, 50);
@@ -43,6 +49,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     QHBoxLayout *headerLayout = new QHBoxLayout();
     headerLayout->addWidget(addRoomButton);
     headerLayout->addWidget(addDeviceButton);
+    headerLayout->addWidget(addScenarioButton);
     headerLayout->addStretch();
     headerLayout->addWidget(logoutButton);
 
@@ -236,8 +243,67 @@ void MainWindow::onAddDeviceButtonClicked()
     }
 }
 
-void MainWindow::onScenarioButtonClicked(){}
-void MainWindow::onAllDevicesButtonClicked(){}
+void MainWindow::onScenarioButtonClicked(){
+    QVector<QString> allScenarios;
+
+    QSqlQuery query(DatabaseManager::instance().getDatabase());
+    if (query.exec("SELECT name FROM scenarios")) {
+        while (query.next()) {
+            QString scenarioName = query.value(0).toString();
+            allScenarios.append(scenarioName);
+        }
+    } else {
+        qDebug() << "Failed to load scenarios from database:" << query.lastError().text();
+        QMessageBox::warning(this, "Ошибка", "Не удалось загрузить сценарии из базы данных.");
+    }
+
+    displayItemsInGrid(allScenarios);
+}
+bool MainWindow::addScenario(const QString &scenarioName)
+{
+    QSqlQuery query(DatabaseManager::instance().getDatabase());
+
+    query.prepare("INSERT INTO scenarios (name) VALUES (:name)");
+    query.bindValue(":name", scenarioName);
+
+    if (!query.exec()) {
+        qDebug() << "Failed to add scenario to database:" << query.lastError().text();
+        QMessageBox::warning(this, "Ошибка", "Не удалось добавить сценарий в базу данных.");
+        return false;
+    }
+
+    return true;
+}
+void MainWindow::onAddScenarioButtonClicked()
+{
+    bool ok;
+    QString scenarioName = QInputDialog::getText(this, "Добавить сценарий",
+                                                 "Введите название сценария:", QLineEdit::Normal,
+                                                 "", &ok);
+    if (ok && !scenarioName.isEmpty()) {
+        if (addScenario(scenarioName)) {
+            QMessageBox::information(this, "Успех", "Сценарий добавлен.");
+        } else {
+            QMessageBox::warning(this, "Ошибка", "Не удалось добавить сценарий.");
+        }
+    }
+}
+void MainWindow::onAllDevicesButtonClicked(){
+    QVector<QString> allDevices;
+
+    QSqlQuery query(DatabaseManager::instance().getDatabase());
+    if (query.exec("SELECT name FROM devices")) {
+        while (query.next()) {
+            QString deviceName = query.value(0).toString();
+            allDevices.append(deviceName);
+        }
+    } else {
+        qDebug() << "Failed to load devices from database:" << query.lastError().text();
+        QMessageBox::warning(this, "Ошибка", "Не удалось загрузить устройства из базы данных.");
+    }
+
+    displayItemsInGrid(allDevices);
+}
 void MainWindow::displayItemsInGrid(const QVector<QString> &items)
 {
     clearDisplay();  // Clear previous items

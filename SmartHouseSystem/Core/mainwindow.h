@@ -25,7 +25,8 @@ private slots:
     void onAllDevicesButtonClicked();
     void onAddRoomButtonClicked();
     void onAddDeviceButtonClicked();
-    //void onRoomButtonClicked(const QString &roomName);
+    void onAddScenarioButtonClicked();
+
 
 private:
     void clearDisplay();
@@ -36,12 +37,13 @@ private:
     bool addRoomToDatabase(const QString &roomName);
     bool addDeviceToRoom(const QString &roomName, const QString &deviceName);
     void clearRoomButtons();
-
+    bool addScenario(const QString &scenarioName);
     QPushButton *logoutButton;
     QPushButton *scenarioButton;
     QPushButton *allDevicesButton;
     QPushButton *addRoomButton;
     QPushButton *addDeviceButton;
+    QPushButton *addScenarioButton;
 
     QWidget *displayWidget;
     QGridLayout *gridLayout;
