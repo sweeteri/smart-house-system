@@ -102,7 +102,6 @@ void MainWindow::loadRoomsFromDatabase()
 }
 void MainWindow::loadDevicesFromDatabase()
 {
-    // Clear existing device data
     for (auto &devices : roomDevices) {
         devices.clear();
     }
@@ -136,7 +135,7 @@ bool MainWindow::addRoomToDatabase(const QString &roomName)
 
 void MainWindow::onAddRoomButtonClicked()
 {
-    bool ok;
+    /*bool ok;
     QString roomName = QInputDialog::getText(this, "Добавить комнату",
                                              "Введите название комнаты:", QLineEdit::Normal,
                                              "", &ok);
@@ -150,6 +149,26 @@ void MainWindow::onAddRoomButtonClicked()
             }
         } else {
             QMessageBox::warning(this, "Ошибка", "Комната с таким названием уже существует.");
+        }
+    }*/
+
+    QStringList predefinedRooms = {"Ванная", "Гостиная", "Детская", "Гараж"};
+    QString selectedRoom = QInputDialog::getItem(this, "Добавить помещение", "Выберите помещение:", predefinedRooms, 0, false);
+
+    if (selectedRoom.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Помещение не выбрано.");
+        return;
+    }
+    if (!selectedRoom.isEmpty()) {
+        if (!roomDevices.contains(selectedRoom)) {
+            if (addRoomToDatabase(selectedRoom)) {
+                roomDevices[selectedRoom] = QVector<QString>();
+                updateDisplay();
+            } else {
+                QMessageBox::warning(this, "Ошибка", "Не удалось добавить помещение в базу данных.");
+            }
+        } else {
+            QMessageBox::warning(this, "Ошибка", "Помещение с таким названием уже существует.");//TODO доработать: что делать если несколько спален и тд
         }
     }
 }
@@ -276,7 +295,7 @@ bool MainWindow::addScenario(const QString &scenarioName)
 }
 void MainWindow::onAddScenarioButtonClicked()
 {
-    bool ok;
+    /*bool ok;
     QString scenarioName = QInputDialog::getText(this, "Добавить сценарий",
                                                  "Введите название сценария:", QLineEdit::Normal,
                                                  "", &ok);
@@ -286,7 +305,23 @@ void MainWindow::onAddScenarioButtonClicked()
         } else {
             QMessageBox::warning(this, "Ошибка", "Не удалось добавить сценарий.");
         }
+    }*/
+    QStringList predefinedScenarious = {"Наступила ночь", "Наступило утро", "Стало холодно", "Стало жарко"};
+    QString selectedScenario = QInputDialog::getItem(this, "Добавить сценарий", "Выберите сценарий:", predefinedScenarious, 0, false);
+
+    if (selectedScenario.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Сценарий не выбрано.");
+        return;
     }
+
+    if (!selectedScenario.isEmpty()) {
+        if (addScenario(selectedScenario)) {
+            QMessageBox::information(this, "Успех", "Сценарий добавлен.");
+        } else {
+            QMessageBox::warning(this, "Ошибка", "Не удалось добавить сценарий.");
+        }
+    }
+
 }
 void MainWindow::onAllDevicesButtonClicked(){
     QVector<QString> allDevices;
@@ -306,7 +341,7 @@ void MainWindow::onAllDevicesButtonClicked(){
 }
 void MainWindow::displayItemsInGrid(const QVector<QString> &items)
 {
-    clearDisplay();  // Clear previous items
+    clearDisplay();
 
     int row = 0, col = 0;
     for (const QString &device : items) {
