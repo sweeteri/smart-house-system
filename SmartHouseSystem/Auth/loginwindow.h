@@ -39,7 +39,11 @@ private:
     QPushButton *loginButton;
     QPushButton *registerButton;
 
+    QSqlDatabase db;
+
     MainWindow *mainWindow;
     RegistrationWindow *registrationWindow=nullptr;
+
+    bool authenticateUser(const QString &username, const QString &password);
 };
 #endif // LOGINAPP_H

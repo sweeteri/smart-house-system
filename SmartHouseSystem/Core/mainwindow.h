@@ -14,38 +14,43 @@ class MainWindow : public QWidget
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 signals:
     void backToMain();
 
 private slots:
-    void onLogoutButtonClicked();
     void onScenarioButtonClicked();
     void onAllDevicesButtonClicked();
-    void onBedroomButtonClicked();
-    void onLivingRoomButtonClicked();
-    void onKidsRoomButtonClicked();
-    void onHallwayButtonClicked();
+    void onAddRoomButtonClicked();
+    void onAddDeviceButtonClicked();
+    //void onRoomButtonClicked(const QString &roomName);
 
 private:
     void clearDisplay();
+    void updateDisplay();
     void displayItemsInGrid(const QVector<QString> &items);
+    void loadRoomsFromDatabase();
+    bool addRoomToDatabase(const QString &roomName);
+    bool addDeviceToRoom(const QString &roomName, const QString &deviceName);
 
     QPushButton *logoutButton;
     QPushButton *scenarioButton;
     QPushButton *allDevicesButton;
-    QPushButton *bedroomButton;
-    QPushButton *livingRoomButton;
-    QPushButton *kidsRoomButton;
-    QPushButton *hallwayButton;
-
-    QMap<QString, QVector<QString>> roomDevices;
-    QVector<QString> scenarios;
+    QPushButton *addRoomButton;
+    QPushButton *addDeviceButton;
 
     QWidget *displayWidget;
     QGridLayout *gridLayout;
+    QVBoxLayout *roomButtonsLayout;
+
+    QWidget *sideMenu;
+    QVBoxLayout *sideMenuLayout;
+    QVBoxLayout *devicesButtonsLayout;
+
+    QMap<QString, QVector<QString>> roomDevices;
+
 };
 
 #endif // MAINWINDOW_H

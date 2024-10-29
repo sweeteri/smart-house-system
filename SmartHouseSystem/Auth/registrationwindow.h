@@ -6,6 +6,7 @@
 #include <QLineEdit>
 #include <QVBoxLayout>
 #include <QComboBox>
+#include <QSqlDatabase>
 
 class RegistrationWindow : public QWidget
 {
@@ -28,6 +29,10 @@ private:
     QLineEdit *confirmPasswordInput;
     QPushButton *registerButton;
     QPushButton *backToLoginButton;
+    QSqlDatabase db;
+
+    bool userExists(const QString &username);
+    bool registerUser(const QString &username, const QString &password, const QString &role);
 };
 
 #endif // REGISTRATIONWINDOW_H
