@@ -32,8 +32,10 @@ private:
     void updateDisplay();
     void displayItemsInGrid(const QVector<QString> &items);
     void loadRoomsFromDatabase();
+    void loadDevicesFromDatabase();
     bool addRoomToDatabase(const QString &roomName);
     bool addDeviceToRoom(const QString &roomName, const QString &deviceName);
+    void clearRoomButtons();
 
     QPushButton *logoutButton;
     QPushButton *scenarioButton;
@@ -44,11 +46,11 @@ private:
     QWidget *displayWidget;
     QGridLayout *gridLayout;
     QVBoxLayout *roomButtonsLayout;
-
     QWidget *sideMenu;
     QVBoxLayout *sideMenuLayout;
     QVBoxLayout *devicesButtonsLayout;
 
+    QString currentRoom;
     QMap<QString, QVector<QString>> roomDevices;
 
 };

@@ -13,11 +13,11 @@
 LoginWindow::LoginWindow(QWidget *parent)
     : QMainWindow(parent), mainWindow(nullptr)
 {
-    // Setup UI components (unchanged)
     loginLineEdit = new QLineEdit(this);
     passwordLineEdit = new QLineEdit(this);
     passwordLineEdit->setEchoMode(QLineEdit::Password);
     loginButton = new QPushButton("Войти", this);
+
     errorLabel = new QLabel(this);
 
     loginLineEdit->setPlaceholderText("Логин");
@@ -54,7 +54,6 @@ void LoginWindow::onLoginClicked() {
     QString password = passwordLineEdit->text();
 
     if (DatabaseManager::instance().authenticateUser(username, password)) {
-        // Login successful
         errorLabel->clear();
         if (!mainWindow) {
             mainWindow = new MainWindow(nullptr);
@@ -73,7 +72,6 @@ void LoginWindow::onLoginClicked() {
 
 bool LoginWindow::authenticateUser(const QString &username, const QString &password) {
     if (!db.isOpen()) {
-        qDebug() << "Database is not open";
         return false;
     }
     QSqlQuery query;
@@ -88,13 +86,10 @@ bool LoginWindow::authenticateUser(const QString &username, const QString &passw
     if (query.next() && query.value(0).toInt() > 0) {
         return true;
     }
-    qDebug() << "Authentication failed:" << query.lastError().text();
-
     return false;
 }
 
 void LoginWindow::onRegisterClicked() {
-    // Existing registration logic (unchanged)
     if (!registrationWindow) {
         registrationWindow = new RegistrationWindow();
         connect(registrationWindow, &RegistrationWindow::goBackToLogin, this, [this]() {

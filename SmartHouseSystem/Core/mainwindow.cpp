@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QListWidget>
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
@@ -19,31 +20,25 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     addRoomButton = new QPushButton("Добавить комнату", this);
     connect(addRoomButton, &QPushButton::clicked, this, &MainWindow::onAddRoomButtonClicked);
+
     addDeviceButton = new QPushButton("Добавить устройство", this);
     connect(addDeviceButton, &QPushButton::clicked, this, &MainWindow::onAddDeviceButtonClicked);
 
     scenarioButton = new QPushButton("Сценарии", this);
     allDevicesButton = new QPushButton("Все устройства", this);
+
     addDeviceButton->setFixedSize(200, 50);
-
-
     scenarioButton->setFixedSize(200, 50);
     allDevicesButton->setFixedSize(200, 50);
     addRoomButton->setFixedSize(200, 50);
 
     sideMenu = new QWidget(this);
     sideMenuLayout = new QVBoxLayout(sideMenu);
-
-
     sideMenuLayout->addWidget(scenarioButton);
     sideMenuLayout->addWidget(allDevicesButton);
-
-
     roomButtonsLayout = new QVBoxLayout();
     sideMenuLayout->addLayout(roomButtonsLayout);
-
     sideMenuLayout->addStretch();
-
 
     QHBoxLayout *headerLayout = new QHBoxLayout();
     headerLayout->addWidget(addRoomButton);
@@ -68,6 +63,9 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     resize(800, 600);
 
     loadRoomsFromDatabase();
+    loadDevicesFromDatabase();
+
+    currentRoom = QString();
 
     if (roomDevices.isEmpty()) {
         QMessageBox::information(this, "Информация", "Нет добавленных комнат. Пожалуйста, добавьте комнаты.");
@@ -81,27 +79,39 @@ MainWindow::~MainWindow() {}
 
 void MainWindow::loadRoomsFromDatabase()
 {
-    qDebug() << "loadRoomsFromDatabase started";
-
     roomDevices.clear();
 
     QSqlQuery query(DatabaseManager::instance().getDatabase());
 
-    if (query.exec("SELECT name FROM rooms")) {
+    if (query.exec("SELECT name FROM rooms ORDER BY id")) {
         while (query.next()) {
             QString roomName = query.value(0).toString();
             roomDevices[roomName] = QVector<QString>();
-            qDebug() << "Loaded room:" << roomName;
-        }
-        if (roomDevices.isEmpty()) {
-            qDebug() << "No rooms found in the database.";
         }
     } else {
         qDebug() << "Failed to load rooms from database:" << query.lastError().text();
         QMessageBox::warning(this, "Ошибка", "Не удалось загрузить комнаты из базы данных.");
     }
 }
+void MainWindow::loadDevicesFromDatabase()
+{
+    // Clear existing device data
+    for (auto &devices : roomDevices) {
+        devices.clear();
+    }
 
+    QSqlQuery query(DatabaseManager::instance().getDatabase());
+
+    if (query.exec("SELECT d.name, r.name FROM devices d JOIN rooms r ON d.room_id = r.id")) {
+        while (query.next()) {
+            QString deviceName = query.value(0).toString();
+            QString roomName = query.value(1).toString();
+            roomDevices[roomName].append(deviceName);
+        }
+    } else {
+        qDebug() << "Failed to load devices from database:" << query.lastError().text();
+    }
+}
 bool MainWindow::addRoomToDatabase(const QString &roomName)
 {
     QSqlQuery query(DatabaseManager::instance().getDatabase());
@@ -139,13 +149,17 @@ void MainWindow::onAddRoomButtonClicked()
 
 void MainWindow::updateDisplay()
 {
-    clearDisplay();
+    clearRoomButtons();
 
-    for (const QString &room : roomDevices.keys()) {
+    QStringList roomNames = roomDevices.keys();
+    std::sort(roomNames.begin(), roomNames.end());
+
+    for (const QString &room : roomNames) {
         QPushButton *roomButton = new QPushButton(room, this);
         roomButton->setFixedSize(200, 50);
 
-        connect(roomButton, &QPushButton::clicked, this,[this , room]() {
+        connect(roomButton, &QPushButton::clicked, this, [this, room]() {
+            currentRoom = room;
             displayItemsInGrid(roomDevices[room]);
         });
 
@@ -153,11 +167,10 @@ void MainWindow::updateDisplay()
     }
 
     if (roomDevices.isEmpty()) {
-        clearDisplay();
         QLabel *warningLabel = new QLabel("Предупреждение: Нет добавленных комнат. Пожалуйста, добавьте комнаты.", this);
         warningLabel->setWordWrap(true);
         warningLabel->setAlignment(Qt::AlignCenter);
-        gridLayout->addWidget(warningLabel , 0 , 0 , 1 , 3);
+        gridLayout->addWidget(warningLabel, 0, 0, 1, 3);
     }
 }
 
@@ -202,39 +215,73 @@ bool MainWindow::addDeviceToRoom(const QString &roomName, const QString &deviceN
 }
 void MainWindow::onAddDeviceButtonClicked()
 {
-    bool ok;
-    QString deviceName = QInputDialog::getText(this, "Добавить устройство",
-                                               "Введите название устройства:", QLineEdit::Normal,
-                                               "", &ok);
+    if (currentRoom.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Сначала выберите комнату для добавления устройства.");
+        return;
+    }
 
-    if (ok && !deviceName.isEmpty()) {
-        bool roomSelected = false;
-        QString selectedRoom;
+    QStringList predefinedDevices = {"Лампа", "Термостат", "Камера наблюдения", "Датчик движения"};
+    QString selectedDevice = QInputDialog::getItem(this, "Добавить устройство", "Выберите устройство:", predefinedDevices, 0, false);
 
-        QStringList roomsList = roomDevices.keys();
-        selectedRoom = QInputDialog::getItem(this, "Выберите комнату",
-                                             "Выберите комнату:", roomsList, 0, false);
+    if (selectedDevice.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Устройство не выбрано.");
+        return;
+    }
 
-        if (!selectedRoom.isEmpty()) {
-            roomSelected = true;
-        }
-
-        if (roomSelected) {
-            if (addDeviceToRoom(selectedRoom, deviceName)) {
-                QMessageBox::information(this, "Успех",
-                                         QString("Устройство '%1' добавлено в '%2'.").arg(deviceName).arg(selectedRoom));
-            } else {
-                QMessageBox::warning(this, "Ошибка",
-                                     QString("Не удалось добавить устройство '%1' в '%2'.").arg(deviceName).arg(selectedRoom));
-            }
-        } else {
-            QMessageBox::warning(this, "Ошибка", "Комната не выбрана.");
-        }
-
+    if (addDeviceToRoom(currentRoom, selectedDevice)) {
+        QMessageBox::information(this, "Успех", QString("Устройство '%1' добавлено в '%2'.").arg(selectedDevice).arg(currentRoom));
         updateDisplay();
+    } else {
+        QMessageBox::warning(this, "Ошибка", "Не удалось добавить устройство.");
     }
 }
 
 void MainWindow::onScenarioButtonClicked(){}
 void MainWindow::onAllDevicesButtonClicked(){}
-void MainWindow::displayItemsInGrid(const QVector<QString> &items){}
+void MainWindow::displayItemsInGrid(const QVector<QString> &items)
+{
+    clearDisplay();  // Clear previous items
+
+    int row = 0, col = 0;
+    for (const QString &device : items) {
+        QPushButton *deviceButton = new QPushButton(device, this);
+        deviceButton->setFixedSize(100, 100);
+        deviceButton->setCheckable(true);
+
+        deviceButton->setStyleSheet(
+            "QPushButton { background-color: lightgray; border: 1px solid black; }"
+            "QPushButton:checked { background-color: green; color: white; }"
+            "QPushButton:!checked { background-color: red; color: white; }"
+            );
+
+        connect(deviceButton, &QPushButton::clicked, this, [=]() {
+            bool isOn = deviceButton->isChecked();
+            if (isOn) {
+                qDebug() << device << "turned ON";
+            } else {
+                qDebug() << device << "turned OFF";
+            }
+        });
+
+        gridLayout->addWidget(deviceButton, row, col);
+
+        if (++col >= 3) {
+            col = 0;
+            ++row;
+        }
+    }
+
+    if (items.isEmpty()) {
+        QLabel *noDevicesLabel = new QLabel("Добавьте устройства", this);
+        noDevicesLabel->setAlignment(Qt::AlignCenter);
+        gridLayout->addWidget(noDevicesLabel, 0, 0, 1, 3);
+    }
+}
+void MainWindow::clearRoomButtons()
+{
+    QLayoutItem *item;
+    while ((item = roomButtonsLayout->takeAt(0)) != nullptr) {
+        delete item->widget();
+        delete item;
+    }
+}
