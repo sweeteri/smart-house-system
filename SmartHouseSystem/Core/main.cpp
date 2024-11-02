@@ -1,5 +1,6 @@
 #include "loginwindow.h"
-#include "databasemanager.h"
+#include "mainwindow.h"
+#include "networkmanager.h"
 #include <QApplication>
 
 
@@ -7,13 +8,25 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    if (!DatabaseManager::instance().openDatabase()) {
-        qDebug() << "Failed to open database. Exiting.";
-        return -1;
+    NetworkManager &networkManager = NetworkManager::instance();
+    if (networkManager.connectToServer("127.0.0.1", 1234)) {
+        qDebug() << "Connected to server!";
+    } else {
+        qWarning() << "Failed to connect to server.";
     }
-    qDebug() << "Database opened successfully";
+
     LoginWindow w;
+    MainWindow* mainWindow = new MainWindow(nullptr);
+    QObject::connect(&w, &LoginWindow::login_success, mainWindow, [&]() {
+        mainWindow->show();
+        // Запросы на сервер о данных
+        QJsonObject request;
+        request["action"] = "loadRooms";
+        qDebug() << "----IBUSKO---- request[action] = \"loadRooms\";";
+        NetworkManager::instance().sendRequest(request);
+
+    });
     w.show();
-    DatabaseManager::instance().closeDatabase();
+
     return a.exec();
 }

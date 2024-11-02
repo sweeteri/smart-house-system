@@ -1,11 +1,12 @@
 #include "registrationwindow.h"
-#include "databasemanager.h"
 #include <QMessageBox>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QCryptographicHash>
 #include <QDebug>
+#include <QJsonObject>
+#include "networkmanager.h"
 
 RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
 {
@@ -33,20 +34,69 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
     connect(backToLoginButton, &QPushButton::clicked, this, [this]() {
         emit goBackToLogin();
         this->close();
+
     });
 
-    layout->addWidget(usernameInput);
-    layout->addWidget(passwordInput);
-    layout->addWidget(confirmPasswordInput);
-    layout->addWidget(roleComboBox);
-    layout->addWidget(registerButton);
-    layout->addWidget(backToLoginButton);
+    buttonFrame = new QFrame(this);
+    QVBoxLayout *buttonLayout = new QVBoxLayout(buttonFrame);
+
+    buttonLayout->addWidget(usernameInput);
+    buttonLayout->addWidget(passwordInput);
+    buttonLayout->addWidget(confirmPasswordInput);
+    buttonLayout->addWidget(roleComboBox);
+    buttonLayout->addWidget(registerButton);
+    buttonLayout->addWidget(backToLoginButton);
+
+    layout->addWidget(buttonFrame);
+
+    setAutoFillBackground(true);
+    QPalette palette = this->palette();
+    palette.setBrush(QPalette::Window, QBrush(QPixmap("C:/Users/2005k/Documents/SmartHouseSystem/SmartHouseSystem/images/background.png")));
+    setPalette(palette);
+
+    // Стиль для кнопок и полей ввода
+    buttonFrame->setStyleSheet("QFrame { background-color: #9fa7fb; border-radius: 10px; padding: 40px; margin: 70px;}");
+
+    usernameInput->setStyleSheet("QLineEdit {"
+                                 "background-color: white;"
+                                 "border-radius: 15px;"
+                                 "padding: 10px;"
+                                 "}");
+
+    passwordInput->setStyleSheet("QLineEdit {"
+                                 "background-color: white;"
+                                 "border-radius: 15px;"
+                                 "padding: 10px;"
+                                 "}");
+
+    confirmPasswordInput->setStyleSheet("QLineEdit {"
+                                        "background-color: white;"
+                                        "border-radius: 15px;"
+                                        "padding: 10px;"
+                                        "}");
+
+    roleComboBox->setStyleSheet("QComboBox {"
+                                "background-color: #f78dae;"
+                                "border-radius: 15px;"
+                                "padding: 10px;"
+                                "}");
+
+    registerButton->setStyleSheet("QPushButton {"
+                                  "background-color: #f78dae;"
+                                  "border-radius: 15px;"
+                                  "padding: 10px;"
+                                  "}");
+
+    backToLoginButton->setStyleSheet("QPushButton {"
+                                     "background-color: #f78dae;"
+                                     "border-radius: 15px;"
+                                     "padding: 10px;"
+                                     "}");
 }
 
 
 void RegistrationWindow::onRegisterClicked()
 {
-
     QString username = usernameInput->text();
     QString password = passwordInput->text();
     QString confirmPassword = confirmPasswordInput->text();
@@ -61,45 +111,27 @@ void RegistrationWindow::onRegisterClicked()
         QMessageBox::warning(this, "Ошибка", "Пароли не совпадают!");
         return;
     }
+    QByteArray passwordHash = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256);
+    QString hashedPassword = QString(passwordHash.toHex());
+    QJsonObject request;
+    request["action"] = "register";
+    request["username"] = username;
+    request["password"] = hashedPassword;
+    request["role"] = role;
 
-    if (DatabaseManager::instance().registerUser(username, password, role)) {
-        QMessageBox::information(this, "Регистрация", "Вы успешно зарегистрировались!");
+    connect(&NetworkManager::instance(), &NetworkManager::responseReceived,
+            this, &RegistrationWindow::handleRegistrationResponse);
+    NetworkManager::instance().sendRequest(request);
+}
+
+void RegistrationWindow::handleRegistrationResponse(const QJsonObject &response) {
+    if (response["success"].toBool()) {
+        QMessageBox::information(this, "Регистрация", response["message"].toString());
         emit registrationSuccess();
         this->close();
     } else {
-        QMessageBox::critical(this, "Ошибка", "Не удалось зарегистрировать пользователя. Попробуйте еще раз.");
+        QMessageBox::critical(this, "Ошибка", response["message"].toString());
     }
 }
 
-bool RegistrationWindow::userExists(const QString &username)
-{
-    if (!db.isOpen()) {
-        return false;
-    }
-    QSqlQuery query;
-    query.prepare("SELECT COUNT(*) FROM users WHERE username = :username");
-    query.bindValue(":username", username);
 
-    if (query.exec() && query.next()) {
-        return query.value(0).toInt() > 0;
-    }
-
-    QMessageBox::critical(this, "Database Error", "Failed to check user existence: " + query.lastError().text());
-    return false;
-}
-
-bool RegistrationWindow::registerUser(const QString &username, const QString &password, const QString &role)
-{
-    QSqlQuery query(db);
-    query.prepare("INSERT INTO users (username, password, role) VALUES (:username, :password, :role)");
-    query.addBindValue(username);
-    query.addBindValue(password);
-    query.addBindValue(role);
-
-    if (!query.exec()) {
-        QMessageBox::critical(this, "Database Error", "Failed to register user: " + query.lastError().text());
-        return false;
-    }
-
-    return true;
-}

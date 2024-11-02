@@ -15,30 +15,28 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Network)
 find_package(Qt5 COMPONENTS Core Widgets Sql REQUIRED)
 
-# Указываем директории с исходниками
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/Core
     ${CMAKE_CURRENT_SOURCE_DIR}/Auth
     ${CMAKE_CURRENT_SOURCE_DIR}/Databasemanager
+    ${CMAKE_CURRENT_SOURCE_DIR}/NetworkManager
 )
 
-# Все исходные файлы и файлы заголовков добавляем в эти переменные
 set(PROJECT_SOURCES
     Core/main.cpp
     Core/mainwindow.cpp
     Auth/loginwindow.cpp
     Auth/registrationwindow.cpp
-    DatabaseManager/databasemanager.cpp
+    Networkmanager/networkmanager.cpp
 )
 
 set(PROJECT_HEADERS
     Core/mainwindow.h
     Auth/loginwindow.h
     Auth/registrationwindow.h
-    DatabaseManager/databasemanager.h
+    NetworkManager/networkmanager.h
 )
 
-# Собираем проект в зависимости от версии Qt
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SmartHouseSystem
         MANUAL_FINALIZATION
@@ -59,10 +57,8 @@ else()
     endif()
 endif()
 
-# Подключаем QtSql к вашему проекту
 target_link_libraries(SmartHouseSystem PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql Qt${QT_VERSION_MAJOR}::Network)
 
-# Дополнительные настройки для macOS
 if(${QT_VERSION} VERSION_LESS 5.0.0)
     set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.SmartHouseSystem)
 endif()
@@ -75,7 +71,6 @@ set_target_properties(SmartHouseSystem PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-# Установка проекта
 include(GNUInstallDirs)
 install(TARGETS SmartHouseSystem
     BUNDLE DESTINATION .
@@ -83,7 +78,6 @@ install(TARGETS SmartHouseSystem
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Финализируем сборку для Qt6
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(SmartHouseSystem)
 endif()

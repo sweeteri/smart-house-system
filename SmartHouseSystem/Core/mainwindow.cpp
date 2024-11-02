@@ -1,22 +1,33 @@
 #include "mainwindow.h"
-#include "databasemanager.h"
+#include "networkmanager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QDebug>
 #include <QInputDialog>
 #include <QMessageBox>
-#include <QSqlQuery>
-#include <QSqlError>
 #include <QListWidget>
+#include <QJsonArray>
+#include <QGraphicsDropShadowEffect>
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
-    qDebug() << "MainWindow constructor started";
+    initUI();
 
+    qDebug() << "----IBUSKO---- MainWindow(QWidget *parent)";
+    connect(
+        &NetworkManager::instance(),
+        &NetworkManager::responseReceived,
+        this,
+        &MainWindow::handleServerResponse);
 
+}
+
+MainWindow::~MainWindow() {}
+
+void MainWindow::initUI() {
     logoutButton = new QPushButton("Выйти", this);
-    connect(logoutButton, &QPushButton::clicked, this, [this](){emit backToMain();});
+    connect(logoutButton, &QPushButton::clicked, this, [this](){ emit backToMain(); });
 
     addRoomButton = new QPushButton("Добавить комнату", this);
     connect(addRoomButton, &QPushButton::clicked, this, &MainWindow::onAddRoomButtonClicked);
@@ -26,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     scenarioButton = new QPushButton("Сценарии", this);
     connect(scenarioButton, &QPushButton::clicked, this, &MainWindow::onScenarioButtonClicked);
+
+    /*allRoomsButton = new QPushButton("Все комнаты", this);
+    connect(allRoomsButton, &QPushButton::clicked, this, &MainWindow::onAllRoomsButtonClicked);*/
 
     addScenarioButton = new QPushButton("Добавить сценарий", this);
     connect(addScenarioButton, &QPushButton::clicked, this, &MainWindow::onAddScenarioButtonClicked);
@@ -37,6 +51,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     scenarioButton->setFixedSize(200, 50);
     allDevicesButton->setFixedSize(200, 50);
     addRoomButton->setFixedSize(200, 50);
+    addScenarioButton->setFixedSize(200, 50);
+    logoutButton->setFixedSize(100, 35);
 
     sideMenu = new QWidget(this);
     sideMenuLayout = new QVBoxLayout(sideMenu);
@@ -45,6 +61,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     roomButtonsLayout = new QVBoxLayout();
     sideMenuLayout->addLayout(roomButtonsLayout);
     sideMenuLayout->addStretch();
+
 
     QHBoxLayout *headerLayout = new QHBoxLayout();
     headerLayout->addWidget(addRoomButton);
@@ -69,110 +86,276 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     setWindowTitle("Умный дом");
     resize(800, 600);
 
-    loadRoomsFromDatabase();
-    loadDevicesFromDatabase();
-
+    //loadRoomsFromDatabase();
     currentRoom = QString();
-
-    if (roomDevices.isEmpty()) {
+    /*if (roomDevices.isEmpty()) {
         QMessageBox::information(this, "Информация", "Нет добавленных комнат. Пожалуйста, добавьте комнаты.");
         onAddRoomButtonClicked();
     } else {
         updateDisplay();
-    }
-}
+    }*/
+    auto addShadowEffect = [](QPushButton* button) {
+        QGraphicsDropShadowEffect *shadowEffect = new QGraphicsDropShadowEffect();
+        shadowEffect->setOffset(0, 3);
+        shadowEffect->setColor(QColor(0, 0, 0, 127));
+        shadowEffect->setBlurRadius(5);
+        button->setGraphicsEffect(shadowEffect);
+    };
+    addShadowEffect(scenarioButton);
+    addShadowEffect(allDevicesButton);
+    addShadowEffect(addDeviceButton);
+    addShadowEffect(addRoomButton);
+    addShadowEffect(logoutButton);
+    addShadowEffect(addScenarioButton);
 
-MainWindow::~MainWindow() {}
+    setStyleSheet("QWidget {background-color: #6974e4;}");
+
+    QString buttonStyle = "QPushButton {"
+                          "background-color: #b3a2ee;"
+                          "border-radius: 25px;"
+                          "padding: 10px;"
+                          "font: bold 16px 'New York';"
+                          "}"
+                          "QPushButton:hover {"
+                          "background-color: #ffbaf5;"
+                          "}";
+    scenarioButton->setObjectName("scenarioButton");
+    scenarioButton->setStyleSheet(buttonStyle);
+    allDevicesButton->setObjectName("allDevicesButton");
+    allDevicesButton->setStyleSheet(buttonStyle);
+    logoutButton -> setStyleSheet("QPushButton {""background-color: #f78dae; ""border-radius: 10px;""padding: 6px;""font: bold 16px  'New york';""}""QPushButton:hover {""background-color: #ffbaf5;""}");
+    addRoomButton->setStyleSheet(buttonStyle);
+    addDeviceButton ->setStyleSheet(buttonStyle);
+    addScenarioButton->setStyleSheet(buttonStyle);
+
+}
 
 void MainWindow::loadRoomsFromDatabase()
 {
-    roomDevices.clear();
-
-    QSqlQuery query(DatabaseManager::instance().getDatabase());
-
-    if (query.exec("SELECT name FROM rooms ORDER BY id")) {
-        while (query.next()) {
-            QString roomName = query.value(0).toString();
-            roomDevices[roomName] = QVector<QString>();
-        }
-    } else {
-        qDebug() << "Failed to load rooms from database:" << query.lastError().text();
-        QMessageBox::warning(this, "Ошибка", "Не удалось загрузить комнаты из базы данных.");
-    }
+    QJsonObject request;
+    request["action"] = "loadRooms";
+    NetworkManager::instance().sendRequest(request);
 }
+
+void MainWindow::onAllDevicesButtonClicked()
+{
+    loadDevicesFromDatabase();
+}
+
 void MainWindow::loadDevicesFromDatabase()
 {
-    for (auto &devices : roomDevices) {
-        devices.clear();
-    }
-
-    QSqlQuery query(DatabaseManager::instance().getDatabase());
-
-    if (query.exec("SELECT d.name, r.name FROM devices d JOIN rooms r ON d.room_id = r.id")) {
-        while (query.next()) {
-            QString deviceName = query.value(0).toString();
-            QString roomName = query.value(1).toString();
-            roomDevices[roomName].append(deviceName);
-        }
-    } else {
-        qDebug() << "Failed to load devices from database:" << query.lastError().text();
-    }
-}
-bool MainWindow::addRoomToDatabase(const QString &roomName)
-{
-    QSqlQuery query(DatabaseManager::instance().getDatabase());
-
-    query.prepare("INSERT INTO rooms (name) VALUES (:name)");
-    query.bindValue(":name", roomName);
-
-    if (!query.exec()) {
-        qDebug() << "Failed to add room to database:" << query.lastError().text();
-        return false;
-    }
-
-    return true;
+    QJsonObject request;
+    request["action"] = "loadAllDevices";
+    NetworkManager::instance().sendRequest(request);
 }
 
 void MainWindow::onAddRoomButtonClicked()
 {
-    /*bool ok;
-    QString roomName = QInputDialog::getText(this, "Добавить комнату",
-                                             "Введите название комнаты:", QLineEdit::Normal,
-                                             "", &ok);
-    if (ok && !roomName.isEmpty()) {
-        if (!roomDevices.contains(roomName)) {
-            if (addRoomToDatabase(roomName)) {
-                roomDevices[roomName] = QVector<QString>();
-                updateDisplay();
-            } else {
-                QMessageBox::warning(this, "Ошибка", "Не удалось добавить комнату в базу данных.");
-            }
-        } else {
-            QMessageBox::warning(this, "Ошибка", "Комната с таким названием уже существует.");
-        }
-    }*/
-
-    QStringList predefinedRooms = {"Ванная", "Гостиная", "Детская", "Гараж"};
+    QStringList predefinedRooms = {"Ванная", "Гостиная", "Детская", "Гараж", "Сауна", "Кухня"};
     QString selectedRoom = QInputDialog::getItem(this, "Добавить помещение", "Выберите помещение:", predefinedRooms, 0, false);
 
-    if (selectedRoom.isEmpty()) {
-        QMessageBox::warning(this, "Ошибка", "Помещение не выбрано.");
+    if (selectedRoom.isEmpty() || roomDevices.contains(selectedRoom)) {
+        QMessageBox::warning(this, "Ошибка", roomDevices.contains(selectedRoom) ? "Комната уже существует." : "Не выбрано.");
         return;
     }
-    if (!selectedRoom.isEmpty()) {
-        if (!roomDevices.contains(selectedRoom)) {
-            if (addRoomToDatabase(selectedRoom)) {
-                roomDevices[selectedRoom] = QVector<QString>();
-                updateDisplay();
-            } else {
-                QMessageBox::warning(this, "Ошибка", "Не удалось добавить помещение в базу данных.");
-            }
+
+    QJsonObject request;
+    request["action"] = "addRoom";
+    request["roomName"] = selectedRoom;
+    NetworkManager::instance().sendRequest(request);
+}
+void MainWindow::requestRoomDevices(const QString &roomName) {
+    QJsonObject request;
+    request["action"] = "loadRoomDevices";
+    request["room"] = roomName;
+    NetworkManager::instance().sendRequest(request);
+
+}
+void MainWindow::onAddDeviceButtonClicked()
+{
+    if (currentRoom.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Выберите комнату.");
+        return;
+    }
+
+    QStringList predefinedDevices = {"Лампа", "Термостат", "Камера", "Датчик движения"};
+    QString selectedDevice = QInputDialog::getItem(this, "Добавить устройство", "Выберите устройство:", predefinedDevices, 0, false);
+
+    if (selectedDevice.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Не выбрано.");
+        return;
+    }
+
+    QJsonObject request;
+    request["action"] = "addDevice";
+    request["roomName"] = currentRoom;
+    request["deviceName"] = selectedDevice;
+    NetworkManager::instance().sendRequest(request);
+}
+void MainWindow::onScenarioButtonClicked() {
+    QJsonObject request;
+    //request["action"] = "loadScenarios";
+    request["action"] = "loadRooms";
+    NetworkManager::instance().sendRequest(request);
+}
+void MainWindow::onAddScenarioButtonClicked()
+{
+    QStringList scenarios = {"Наступила ночь", "Наступило утро", "Стало холодно", "Стало жарко", "Наступила зима"};
+    QString selectedScenario = QInputDialog::getItem(this, "Добавить сценарий", "Выберите сценарий:", scenarios, 0, false);
+
+    if (!selectedScenario.isEmpty()) {
+        QJsonObject request;
+        request["action"] = "addScenario";
+        request["scenarioName"] = selectedScenario;
+        NetworkManager::instance().sendRequest(request);
+    } else {
+        QMessageBox::information(this, "Информация", "Добавление сценария отменено.");
+    }
+}
+
+void MainWindow::handleServerResponse(const QJsonObject &response)
+{
+    QString action = response["action"].toString();
+    qDebug() << "-----IBUSKO----- Received response from server:" << action;
+
+    if (action == "loadRooms") {
+        handleLoadRoomsResponse(response);
+    } else if (action == "loadAllDevices") {
+        handleLoadAllDevicesResponse(response);
+    } else if (action == "addRoom") {
+        handleAddRoomResponse(response);
+    } else if (action == "addDevice") {
+        handleAddDeviceResponse(response);
+    } else if (action=="loadScenarios"){
+        handleLoadScenariosResponse(response);
+    }else if(action=="addScenario"){
+        handleAddScenarioResponse(response);
+    }else if(action=="roomDevices")
+        handleLoadRoomDevicesResponse(response);
+}
+
+void MainWindow::handleLoadRoomsResponse(const QJsonObject &response)
+{
+    QJsonArray roomsArray = response["rooms"].toArray();
+
+    for (const QJsonValue &roomValue : roomsArray) {
+        QString roomName = roomValue.toObject()["name"].toString();
+        roomDevices[roomName] = QVector<QString>();
+    }
+    updateDisplay();
+}
+void MainWindow::handleLoadRoomDevicesResponse(const QJsonObject &response) {
+    QString roomName = response["room"].toString();
+    QJsonArray devicesArray = response["devices"].toArray();
+
+    QVector<QString> devices;
+    for (const QJsonValue &deviceValue : devicesArray) {
+        devices.append(deviceValue.toString());
+    }
+
+    roomDevices[roomName] = devices;
+    updateDisplay();
+}
+void MainWindow::handleLoadAllDevicesResponse(const QJsonObject &response)
+{
+    QVector<QString> allDevices;
+    qDebug()<<"devices loaded";
+    QJsonArray devices = response["devices"].toArray();
+    for (const QJsonValue &value : devices) {
+        allDevices.append(value.toString());
+    }
+    displayItemsInGrid(allDevices);
+}
+void MainWindow::handleAddRoomResponse(const QJsonObject &response)
+{
+    QString status = response["status"].toString();
+    QString roomName = response["roomName"].toString();
+
+    if (status == "success") {
+        if (!roomDevices.contains(roomName)) {
+            roomDevices[roomName] = QVector<QString>();
+        }
+        updateDisplay();
+        QMessageBox::information(this, "Success", "Room added successfully: " + roomName);
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to add room: " + response["message"].toString());
+    }
+}
+
+void MainWindow::handleAddDeviceResponse(const QJsonObject &response)
+{
+    QString status = response["status"].toString();
+    QString deviceName = response["deviceName"].toString();
+    QString roomName = response["roomName"].toString();
+
+    if (status == "success") {
+        if (roomDevices.contains(roomName)) {
+            roomDevices[roomName].append(deviceName);
         } else {
-            QMessageBox::warning(this, "Ошибка", "Помещение с таким названием уже существует.");//TODO доработать: что делать если несколько спален и тд
+            roomDevices[roomName] = QVector<QString>({deviceName});
+        }
+
+        loadDevicesFromDatabase();
+        QMessageBox::information(this, "Success", "Device added successfully: " + deviceName);
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to add device: " + response["message"].toString());
+    }
+}
+void MainWindow::handleAddScenarioResponse(const QJsonObject &response)
+{
+    QMessageBox::information(this, "Сценарий", response["message"].toString());
+}
+
+void MainWindow::handleLoadScenariosResponse(const QJsonObject &response)
+{
+    QVector<QString> allScenarios;
+    QJsonArray scenarios = response["scenarios"].toArray();
+
+    for (const QJsonValue &value : scenarios) {
+        allScenarios.append(value.toString());
+    }
+    displayItemsInGrid(allScenarios);
+}
+
+void MainWindow::displayItemsInGrid(const QVector<QString> &items)
+{
+    clearGridLayout(gridLayout);
+
+    int row = 0, col = 0;
+    for (const QString &item : items) {
+        QPushButton *button = new QPushButton(item, this);
+        button->setFixedSize(150, 50);
+        button->setCheckable(true);
+        QString buttonStyle = "QPushButton {"
+                              "background-color: #b3a2ee;"
+                              "border-radius: 25px;"
+                              "padding: 10px;"
+                              "font: bold 16px 'New York';"
+                              "}"
+                              "QPushButton:hover {"
+                              "background-color: #ffbaf5;" /* Темнее исходного */
+                              "}";
+        button->setObjectName(item);
+        button->setStyleSheet(buttonStyle);
+        connect(button, &QPushButton::clicked, this, [button]() {
+            button->setStyleSheet(button->isChecked() ? "background-color: green;" : "background-color: red;");
+        });
+        gridLayout->addWidget(button, row, col);
+        if (++col >= 3) {
+            col = 0;
+            ++row;
         }
     }
 }
 
+void MainWindow::clearGridLayout(QLayout *layout)
+{
+    QLayoutItem *child;
+    while ((child = layout->takeAt(0)) != nullptr) {
+        if (child->widget()) child->widget()->deleteLater();
+        delete child;
+    }
+}
 void MainWindow::updateDisplay()
 {
     clearRoomButtons();
@@ -183,11 +366,23 @@ void MainWindow::updateDisplay()
     for (const QString &room : roomNames) {
         QPushButton *roomButton = new QPushButton(room, this);
         roomButton->setFixedSize(200, 50);
+        QString buttonStyle = "QPushButton {"
+                              "background-color: #b3a2ee;"
+                              "border-radius: 25px;"
+                              "padding: 10px;"
+                              "font: bold 16px 'New York';"
+                              "}"
+                              "QPushButton:hover {"
+                              "background-color: #ffbaf5;" /* Темнее исходного */
+                              "}";
+        roomButton->setObjectName(room);
+        roomButton->setStyleSheet(buttonStyle);
 
         connect(roomButton, &QPushButton::clicked, this, [this, room]() {
             currentRoom = room;
             displayItemsInGrid(roomDevices[room]);
         });
+
 
         roomButtonsLayout->addWidget(roomButton);
     }
@@ -200,188 +395,10 @@ void MainWindow::updateDisplay()
     }
 }
 
-void MainWindow::clearDisplay()
-{
-    QLayoutItem *item;
-    while ((item = gridLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
-}
-bool MainWindow::addDeviceToRoom(const QString &roomName, const QString &deviceName)
-{
-    if (!roomDevices.contains(roomName)) {
-        return false;
-    }
-
-    roomDevices[roomName].append(deviceName);
-
-    QSqlQuery query(DatabaseManager::instance().getDatabase());
-
-    query.prepare("SELECT id FROM rooms WHERE name = :name");
-    query.bindValue(":name", roomName);
-
-    if (!query.exec() || !query.next()) {
-        qDebug() << "Failed to find room ID:" << query.lastError().text();
-        return false;
-    }
-
-    int roomId = query.value(0).toInt();
-
-    query.prepare("INSERT INTO devices (room_id, name) VALUES (:room_id, :name)");
-    query.bindValue(":room_id", roomId);
-    query.bindValue(":name", deviceName);
-
-    if (!query.exec()) {
-        qDebug() << "Failed to add device to database:" << query.lastError().text();
-        return false;
-    }
-
-    return true;
-}
-void MainWindow::onAddDeviceButtonClicked()
-{
-    if (currentRoom.isEmpty()) {
-        QMessageBox::warning(this, "Ошибка", "Сначала выберите комнату для добавления устройства.");
-        return;
-    }
-
-    QStringList predefinedDevices = {"Лампа", "Термостат", "Камера наблюдения", "Датчик движения"};
-    QString selectedDevice = QInputDialog::getItem(this, "Добавить устройство", "Выберите устройство:", predefinedDevices, 0, false);
-
-    if (selectedDevice.isEmpty()) {
-        QMessageBox::warning(this, "Ошибка", "Устройство не выбрано.");
-        return;
-    }
-
-    if (addDeviceToRoom(currentRoom, selectedDevice)) {
-        QMessageBox::information(this, "Успех", QString("Устройство '%1' добавлено в '%2'.").arg(selectedDevice).arg(currentRoom));
-        updateDisplay();
-    } else {
-        QMessageBox::warning(this, "Ошибка", "Не удалось добавить устройство.");
-    }
-}
-
-void MainWindow::onScenarioButtonClicked(){
-    QVector<QString> allScenarios;
-
-    QSqlQuery query(DatabaseManager::instance().getDatabase());
-    if (query.exec("SELECT name FROM scenarios")) {
-        while (query.next()) {
-            QString scenarioName = query.value(0).toString();
-            allScenarios.append(scenarioName);
-        }
-    } else {
-        qDebug() << "Failed to load scenarios from database:" << query.lastError().text();
-        QMessageBox::warning(this, "Ошибка", "Не удалось загрузить сценарии из базы данных.");
-    }
-
-    displayItemsInGrid(allScenarios);
-}
-bool MainWindow::addScenario(const QString &scenarioName)
-{
-    QSqlQuery query(DatabaseManager::instance().getDatabase());
-
-    query.prepare("INSERT INTO scenarios (name) VALUES (:name)");
-    query.bindValue(":name", scenarioName);
-
-    if (!query.exec()) {
-        qDebug() << "Failed to add scenario to database:" << query.lastError().text();
-        QMessageBox::warning(this, "Ошибка", "Не удалось добавить сценарий в базу данных.");
-        return false;
-    }
-
-    return true;
-}
-void MainWindow::onAddScenarioButtonClicked()
-{
-    /*bool ok;
-    QString scenarioName = QInputDialog::getText(this, "Добавить сценарий",
-                                                 "Введите название сценария:", QLineEdit::Normal,
-                                                 "", &ok);
-    if (ok && !scenarioName.isEmpty()) {
-        if (addScenario(scenarioName)) {
-            QMessageBox::information(this, "Успех", "Сценарий добавлен.");
-        } else {
-            QMessageBox::warning(this, "Ошибка", "Не удалось добавить сценарий.");
-        }
-    }*/
-    QStringList predefinedScenarious = {"Наступила ночь", "Наступило утро", "Стало холодно", "Стало жарко"};
-    QString selectedScenario = QInputDialog::getItem(this, "Добавить сценарий", "Выберите сценарий:", predefinedScenarious, 0, false);
-
-    if (selectedScenario.isEmpty()) {
-        QMessageBox::warning(this, "Ошибка", "Сценарий не выбрано.");
-        return;
-    }
-
-    if (!selectedScenario.isEmpty()) {
-        if (addScenario(selectedScenario)) {
-            QMessageBox::information(this, "Успех", "Сценарий добавлен.");
-        } else {
-            QMessageBox::warning(this, "Ошибка", "Не удалось добавить сценарий.");
-        }
-    }
-
-}
-void MainWindow::onAllDevicesButtonClicked(){
-    QVector<QString> allDevices;
-
-    QSqlQuery query(DatabaseManager::instance().getDatabase());
-    if (query.exec("SELECT name FROM devices")) {
-        while (query.next()) {
-            QString deviceName = query.value(0).toString();
-            allDevices.append(deviceName);
-        }
-    } else {
-        qDebug() << "Failed to load devices from database:" << query.lastError().text();
-        QMessageBox::warning(this, "Ошибка", "Не удалось загрузить устройства из базы данных.");
-    }
-
-    displayItemsInGrid(allDevices);
-}
-void MainWindow::displayItemsInGrid(const QVector<QString> &items)
-{
-    clearDisplay();
-
-    int row = 0, col = 0;
-    for (const QString &device : items) {
-        QPushButton *deviceButton = new QPushButton(device, this);
-        deviceButton->setFixedSize(100, 100);
-        deviceButton->setCheckable(true);
-
-        deviceButton->setStyleSheet(
-            "QPushButton { background-color: lightgray; border: 1px solid black; }"
-            "QPushButton:checked { background-color: green; color: white; }"
-            "QPushButton:!checked { background-color: red; color: white; }"
-            );
-
-        connect(deviceButton, &QPushButton::clicked, this, [=]() {
-            bool isOn = deviceButton->isChecked();
-            if (isOn) {
-                qDebug() << device << "turned ON";
-            } else {
-                qDebug() << device << "turned OFF";
-            }
-        });
-
-        gridLayout->addWidget(deviceButton, row, col);
-
-        if (++col >= 3) {
-            col = 0;
-            ++row;
-        }
-    }
-
-    if (items.isEmpty()) {
-        QLabel *noDevicesLabel = new QLabel("Добавьте устройства", this);
-        noDevicesLabel->setAlignment(Qt::AlignCenter);
-        gridLayout->addWidget(noDevicesLabel, 0, 0, 1, 3);
-    }
-}
 void MainWindow::clearRoomButtons()
 {
     QLayoutItem *item;
-    while ((item = roomButtonsLayout->takeAt(0)) != nullptr) {
+    while ((item = sideMenuLayout->takeAt(0)) != nullptr) {
         delete item->widget();
         delete item;
     }

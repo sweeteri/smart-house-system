@@ -5,45 +5,34 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
-#include <QComboBox>
-
-#include "mainwindow.h"
+#include <QString>
 #include "registrationwindow.h"
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class LoginWindow;
-}
-QT_END_NAMESPACE
+class MainWindow;
 
-class LoginWindow : public QMainWindow
-{
+class LoginWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    LoginWindow(QWidget *parent = nullptr);
+    explicit LoginWindow(QWidget *parent = nullptr);
     ~LoginWindow();
+
+signals:
+    void login_success();
 
 private slots:
     void onLoginClicked();
     void onRegisterClicked();
+    void handleLoginResponse(const QJsonObject &response);
 
 private:
-    Ui::LoginWindow *ui;
     QLineEdit *loginLineEdit;
     QLineEdit *passwordLineEdit;
-    QComboBox *roleComboBox;
-
-    QLabel *errorLabel;
-
     QPushButton *loginButton;
     QPushButton *registerButton;
+    QLabel *errorLabel;
 
-    QSqlDatabase db;
-
-    MainWindow *mainWindow;
-    RegistrationWindow *registrationWindow=nullptr;
-
-    bool authenticateUser(const QString &username, const QString &password);
+    RegistrationWindow *registrationWindow;
 };
-#endif // LOGINAPP_H
+
+#endif // LOGINWINDOW_H

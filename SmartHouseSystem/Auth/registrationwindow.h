@@ -21,6 +21,7 @@ signals:
 
 private slots:
     void onRegisterClicked();
+    void handleRegistrationResponse(const QJsonObject &response);
 
 private:
     QLineEdit *usernameInput;
@@ -30,9 +31,7 @@ private:
     QPushButton *registerButton;
     QPushButton *backToLoginButton;
     QSqlDatabase db;
-
-    bool userExists(const QString &username);
-    bool registerUser(const QString &username, const QString &password, const QString &role);
+    QFrame *buttonFrame;
 };
 
 #endif // REGISTRATIONWINDOW_H
