@@ -35,8 +35,7 @@ SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
                 } else if (action == "login") {
                     processLoginRequest(socket, request);
                 } else if (action == "loadRooms") {
-                    //processRoomLoadRequest(socket, request);
-                    processLoadDevicesRequest(socket, request);
+                    processRoomLoadRequest(socket, request);
                 } else if (action == "addRoom") {
                     processAddRoomRequest(socket, request);
                 } else if (action == "loadAllDevices") {
@@ -48,7 +47,7 @@ SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
                 } else if (action == "addDevice") {
                     processAddDeviceRequest(socket, request);
                 } else if (action=="loadRoomDevices"){
-                    processLoadDevicesRequest(socket, request);
+                    processRoomDevicesRequest(socket, request);
                 }
 
             }
@@ -98,8 +97,10 @@ void SmartHouseSystemServer::processLoginRequest(QTcpSocket *socket, const QJson
     QString password = request["password"].toString();
 
     if (DatabaseManager::instance().authenticateUser(username, password)) {
+        QString userRole = DatabaseManager::instance().getUserRole(username);
         QJsonObject response;
         response["authenticated"] = true;
+        response["role"] = userRole;
         response["message"] = "Login successful.";
         socket->write(QJsonDocument(response).toJson());
     } else {
@@ -124,7 +125,7 @@ void SmartHouseSystemServer::processRoomLoadRequest(QTcpSocket *socket, const QJ
 
 }
 void SmartHouseSystemServer::processRoomDevicesRequest(QTcpSocket *socket, const QJsonObject &request) {
-    QString roomName = request["roomName"].toString();
+    QString roomName = request["room"].toString();
     QStringList devices = DatabaseManager::instance().getDevicesForRoom(roomName);
 
     QJsonArray deviceArray;
@@ -135,7 +136,7 @@ void SmartHouseSystemServer::processRoomDevicesRequest(QTcpSocket *socket, const
     QJsonObject response;
     response["action"] = "loadRoomDevices";
     response["room"] = roomName;
-    response["devices"] = deviceArray;
+    response["roomDevices"] = deviceArray;
 
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
@@ -156,7 +157,7 @@ void SmartHouseSystemServer::processLoadDevicesRequest(QTcpSocket *socket, const
    QJsonArray deviceList = QJsonArray::fromStringList(DatabaseManager::instance().getAllDevices());
     QJsonObject response;
     response["action"] = "loadAllDevices";
-    response["devices"] = "[lamp]";
+    response["devices"] = deviceList;
     qDebug() << "---IBUSKO---- processLoadDevicesRequest";
     socket->write(QJsonDocument(response).toJson());
     socket->flush();

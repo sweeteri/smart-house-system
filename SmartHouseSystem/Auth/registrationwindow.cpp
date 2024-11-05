@@ -24,8 +24,9 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
     confirmPasswordInput->setEchoMode(QLineEdit::Password);
 
     roleComboBox = new QComboBox(this);
-    roleComboBox->addItem("admin");
     roleComboBox->addItem("user");
+    roleComboBox->addItem("admin");
+
 
     registerButton = new QPushButton("Зарегистрироваться", this);
     connect(registerButton, &QPushButton::clicked, this, &RegistrationWindow::onRegisterClicked);
@@ -51,10 +52,8 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
 
     setAutoFillBackground(true);
     QPalette palette = this->palette();
-    palette.setBrush(QPalette::Window, QBrush(QPixmap("C:/Users/2005k/Documents/SmartHouseSystem/SmartHouseSystem/images/background.png")));
     setPalette(palette);
 
-    // Стиль для кнопок и полей ввода
     buttonFrame->setStyleSheet("QFrame { background-color: #9fa7fb; border-radius: 10px; padding: 40px; margin: 70px;}");
 
     usernameInput->setStyleSheet("QLineEdit {"
@@ -74,12 +73,22 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
                                         "border-radius: 15px;"
                                         "padding: 10px;"
                                         "}");
-
-    roleComboBox->setStyleSheet("QComboBox {"
-                                "background-color: #f78dae;"
-                                "border-radius: 15px;"
-                                "padding: 10px;"
-                                "}");
+    roleComboBox->setStyleSheet(
+        "QComboBox {"
+        "   background-color: #f78dae;"
+        "   border-radius: 15px;"
+        "   padding: 10px;"
+        "}"
+        "QComboBox::drop-down {"
+        "   border: none;"
+        "}"
+        "QComboBox QAbstractItemView {"
+        "   background-color: white;"
+        "   border-radius: 10px;"
+        "   padding: 5px;"
+        "   selection-background-color: #e69aad;"
+        "}"
+        );
 
     registerButton->setStyleSheet("QPushButton {"
                                   "background-color: #f78dae;"

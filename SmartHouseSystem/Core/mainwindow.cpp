@@ -9,6 +9,7 @@
 #include <QListWidget>
 #include <QJsonArray>
 #include <QGraphicsDropShadowEffect>
+#include <QStackedWidget>
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
@@ -20,11 +21,28 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
         &NetworkManager::responseReceived,
         this,
         &MainWindow::handleServerResponse);
-
+    loadRoomsFromDatabase();
 }
+void MainWindow::setUserRole(const QString &role) {
+    userRole = role;
+    configureUIBasedOnRole();
+}
+void MainWindow::configureUIBasedOnRole() {
+    bool isAdmin = (userRole == "admin");
 
+    addRoomButton->setVisible(isAdmin);
+    addDeviceButton->setVisible(isAdmin);
+    addScenarioButton->setVisible(isAdmin);
+    addScenarioButton->setVisible(isAdmin);
+}
 MainWindow::~MainWindow() {}
-
+auto addShadowEffect = [](QPushButton* button) {
+    QGraphicsDropShadowEffect *shadowEffect = new QGraphicsDropShadowEffect();
+    shadowEffect->setOffset(0, 3);
+    shadowEffect->setColor(QColor(0, 0, 0, 127));
+    shadowEffect->setBlurRadius(5);
+    button->setGraphicsEffect(shadowEffect);
+};
 void MainWindow::initUI() {
     logoutButton = new QPushButton("Выйти", this);
     connect(logoutButton, &QPushButton::clicked, this, [this](){ emit backToMain(); });
@@ -37,9 +55,6 @@ void MainWindow::initUI() {
 
     scenarioButton = new QPushButton("Сценарии", this);
     connect(scenarioButton, &QPushButton::clicked, this, &MainWindow::onScenarioButtonClicked);
-
-    /*allRoomsButton = new QPushButton("Все комнаты", this);
-    connect(allRoomsButton, &QPushButton::clicked, this, &MainWindow::onAllRoomsButtonClicked);*/
 
     addScenarioButton = new QPushButton("Добавить сценарий", this);
     connect(addScenarioButton, &QPushButton::clicked, this, &MainWindow::onAddScenarioButtonClicked);
@@ -58,8 +73,6 @@ void MainWindow::initUI() {
     sideMenuLayout = new QVBoxLayout(sideMenu);
     sideMenuLayout->addWidget(scenarioButton);
     sideMenuLayout->addWidget(allDevicesButton);
-    roomButtonsLayout = new QVBoxLayout();
-    sideMenuLayout->addLayout(roomButtonsLayout);
     sideMenuLayout->addStretch();
 
 
@@ -70,9 +83,10 @@ void MainWindow::initUI() {
     headerLayout->addStretch();
     headerLayout->addWidget(logoutButton);
 
-    displayWidget = new QWidget(this);
-    gridLayout = new QGridLayout(displayWidget);
-    displayWidget->setLayout(gridLayout);
+    displayWidget = new QStackedWidget(this);
+    QWidget *defaultView = new QWidget(displayWidget);
+    gridLayout = new QGridLayout(defaultView);
+    displayWidget->addWidget(defaultView);
 
     QHBoxLayout *mainLayout = new QHBoxLayout();
     mainLayout->addWidget(sideMenu);
@@ -86,21 +100,8 @@ void MainWindow::initUI() {
     setWindowTitle("Умный дом");
     resize(800, 600);
 
-    //loadRoomsFromDatabase();
     currentRoom = QString();
-    /*if (roomDevices.isEmpty()) {
-        QMessageBox::information(this, "Информация", "Нет добавленных комнат. Пожалуйста, добавьте комнаты.");
-        onAddRoomButtonClicked();
-    } else {
-        updateDisplay();
-    }*/
-    auto addShadowEffect = [](QPushButton* button) {
-        QGraphicsDropShadowEffect *shadowEffect = new QGraphicsDropShadowEffect();
-        shadowEffect->setOffset(0, 3);
-        shadowEffect->setColor(QColor(0, 0, 0, 127));
-        shadowEffect->setBlurRadius(5);
-        button->setGraphicsEffect(shadowEffect);
-    };
+
     addShadowEffect(scenarioButton);
     addShadowEffect(allDevicesButton);
     addShadowEffect(addDeviceButton);
@@ -151,7 +152,7 @@ void MainWindow::loadDevicesFromDatabase()
 
 void MainWindow::onAddRoomButtonClicked()
 {
-    QStringList predefinedRooms = {"Ванная", "Гостиная", "Детская", "Гараж", "Сауна", "Кухня"};
+    QStringList predefinedRooms = {"Баня", "Подвал", "Ванная", "Гостиная", "Детская", "Гараж", "Сауна", "Кухня", "Чердак"};
     QString selectedRoom = QInputDialog::getItem(this, "Добавить помещение", "Выберите помещение:", predefinedRooms, 0, false);
 
     if (selectedRoom.isEmpty() || roomDevices.contains(selectedRoom)) {
@@ -194,8 +195,7 @@ void MainWindow::onAddDeviceButtonClicked()
 }
 void MainWindow::onScenarioButtonClicked() {
     QJsonObject request;
-    //request["action"] = "loadScenarios";
-    request["action"] = "loadRooms";
+    request["action"] = "loadScenarios";
     NetworkManager::instance().sendRequest(request);
 }
 void MainWindow::onAddScenarioButtonClicked()
@@ -230,65 +230,108 @@ void MainWindow::handleServerResponse(const QJsonObject &response)
         handleLoadScenariosResponse(response);
     }else if(action=="addScenario"){
         handleAddScenarioResponse(response);
-    }else if(action=="roomDevices")
+    }else if(action=="loadRoomDevices")
         handleLoadRoomDevicesResponse(response);
 }
 
-void MainWindow::handleLoadRoomsResponse(const QJsonObject &response)
-{
+void MainWindow::handleLoadRoomsResponse(const QJsonObject &response) {
     QJsonArray roomsArray = response["rooms"].toArray();
 
-    for (const QJsonValue &roomValue : roomsArray) {
-        QString roomName = roomValue.toObject()["name"].toString();
-        roomDevices[roomName] = QVector<QString>();
+    QLayoutItem *item;
+    QList<QWidget*> widgetsToRemove;
+    for (int i = 0; i < sideMenuLayout->count(); ++i) {
+        item = sideMenuLayout->itemAt(i);
+        QWidget *widget = item ? item->widget() : nullptr;
+        if (widget && widget != scenarioButton && widget != allDevicesButton) {
+            widgetsToRemove.append(widget);
+        }
     }
-    updateDisplay();
+
+    for (QWidget *widget : widgetsToRemove) {
+        sideMenuLayout->removeWidget(widget);
+        delete widget;
+    }
+
+    for (const QJsonValue &value : roomsArray) {
+        QString roomName = value.toString();
+
+        QPushButton *roomButton = new QPushButton(roomName, this);
+        roomButton->setFixedSize(200, 50);
+        connect(roomButton, &QPushButton::clicked, this, [this, roomName]() {
+            currentRoom = roomName;
+            requestRoomDevices(roomName);
+        });
+        QString buttonStyle = "QPushButton {"
+                              "background-color: #b3a2ee;"
+                              "border-radius: 25px;"
+                              "padding: 10px;"
+                              "font: bold 16px 'New York';"
+                              "}"
+                              "QPushButton:hover {"
+                              "background-color: #ffbaf5;"
+                              "}";
+        roomButton->setObjectName(roomName);
+        roomButton->setStyleSheet(buttonStyle);
+        addShadowEffect(roomButton);
+        sideMenuLayout->insertWidget(sideMenuLayout->count() - 1, roomButton);
+    }
+
+
+    sideMenu->update();
 }
+
+
+
 void MainWindow::handleLoadRoomDevicesResponse(const QJsonObject &response) {
     QString roomName = response["room"].toString();
+    QJsonArray devicesArray = response["roomDevices"].toArray();
+    QVector<QString> devices;
+    if (currentRoom == roomName) {
+        clearDisplay();
+
+        for (const QJsonValue &deviceValue : devicesArray) {
+            QString deviceName = deviceValue.toString();
+            devices.push_back(deviceName);
+            displayItemsInGrid(devices, true);
+        }
+        }
+
+}
+void MainWindow::handleLoadAllDevicesResponse(const QJsonObject &response) {
     QJsonArray devicesArray = response["devices"].toArray();
 
     QVector<QString> devices;
-    for (const QJsonValue &deviceValue : devicesArray) {
-        devices.append(deviceValue.toString());
+    for (const QJsonValue &device : devicesArray) {
+        QString deviceName = device.toString();
+        devices.push_back(deviceName);
+        displayItemsInGrid(devices, true);
     }
-
-    roomDevices[roomName] = devices;
-    updateDisplay();
 }
-void MainWindow::handleLoadAllDevicesResponse(const QJsonObject &response)
-{
-    QVector<QString> allDevices;
-    qDebug()<<"devices loaded";
-    QJsonArray devices = response["devices"].toArray();
-    for (const QJsonValue &value : devices) {
-        allDevices.append(value.toString());
-    }
-    displayItemsInGrid(allDevices);
-}
-void MainWindow::handleAddRoomResponse(const QJsonObject &response)
-{
-    QString status = response["status"].toString();
+void MainWindow::handleAddRoomResponse(const QJsonObject &response) {
+    bool status = response["success"].toBool();
     QString roomName = response["roomName"].toString();
 
-    if (status == "success") {
-        if (!roomDevices.contains(roomName)) {
-            roomDevices[roomName] = QVector<QString>();
-        }
-        updateDisplay();
+    if (status) {
+
         QMessageBox::information(this, "Success", "Room added successfully: " + roomName);
     } else {
         QMessageBox::warning(this, "Error", "Failed to add room: " + response["message"].toString());
     }
+    connect(
+        &NetworkManager::instance(),
+        &NetworkManager::responseReceived,
+        this,
+        &MainWindow::handleServerResponse);
+    loadRoomsFromDatabase();
 }
 
 void MainWindow::handleAddDeviceResponse(const QJsonObject &response)
 {
-    QString status = response["status"].toString();
+    bool status = response["success"].toBool();
     QString deviceName = response["deviceName"].toString();
     QString roomName = response["roomName"].toString();
 
-    if (status == "success") {
+    if (status) {
         if (roomDevices.contains(roomName)) {
             roomDevices[roomName].append(deviceName);
         } else {
@@ -306,25 +349,31 @@ void MainWindow::handleAddScenarioResponse(const QJsonObject &response)
     QMessageBox::information(this, "Сценарий", response["message"].toString());
 }
 
-void MainWindow::handleLoadScenariosResponse(const QJsonObject &response)
-{
-    QVector<QString> allScenarios;
-    QJsonArray scenarios = response["scenarios"].toArray();
-
-    for (const QJsonValue &value : scenarios) {
-        allScenarios.append(value.toString());
+void MainWindow::handleLoadScenariosResponse(const QJsonObject &response) {
+    QJsonArray scenariosArray = response["scenarios"].toArray();
+    QVector<QString> scenarios;
+    for (const QJsonValue &scenario : scenariosArray) {
+        QString scenarioName = scenario.toString();
+        scenarios.push_back(scenarioName);
+    displayItemsInGrid(scenarios, false);
     }
-    displayItemsInGrid(allScenarios);
 }
 
-void MainWindow::displayItemsInGrid(const QVector<QString> &items)
+
+
+void MainWindow::displayItemsInGrid(const QVector<QString> &items, bool isDevices)
 {
     clearGridLayout(gridLayout);
 
     int row = 0, col = 0;
     for (const QString &item : items) {
         QPushButton *button = new QPushButton(item, this);
-        button->setFixedSize(150, 50);
+        if (isDevices){
+            button->setFixedSize(100, 100);
+        }else{
+           button->setFixedSize(150, 50);
+        }
+
         button->setCheckable(true);
         QString buttonStyle = "QPushButton {"
                               "background-color: #b3a2ee;"
@@ -333,10 +382,11 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items)
                               "font: bold 16px 'New York';"
                               "}"
                               "QPushButton:hover {"
-                              "background-color: #ffbaf5;" /* Темнее исходного */
+                              "background-color: #ffbaf5;"
                               "}";
         button->setObjectName(item);
         button->setStyleSheet(buttonStyle);
+        addShadowEffect(button);
         connect(button, &QPushButton::clicked, this, [button]() {
             button->setStyleSheet(button->isChecked() ? "background-color: green;" : "background-color: red;");
         });
@@ -356,50 +406,12 @@ void MainWindow::clearGridLayout(QLayout *layout)
         delete child;
     }
 }
-void MainWindow::updateDisplay()
-{
-    clearRoomButtons();
-
-    QStringList roomNames = roomDevices.keys();
-    std::sort(roomNames.begin(), roomNames.end());
-
-    for (const QString &room : roomNames) {
-        QPushButton *roomButton = new QPushButton(room, this);
-        roomButton->setFixedSize(200, 50);
-        QString buttonStyle = "QPushButton {"
-                              "background-color: #b3a2ee;"
-                              "border-radius: 25px;"
-                              "padding: 10px;"
-                              "font: bold 16px 'New York';"
-                              "}"
-                              "QPushButton:hover {"
-                              "background-color: #ffbaf5;" /* Темнее исходного */
-                              "}";
-        roomButton->setObjectName(room);
-        roomButton->setStyleSheet(buttonStyle);
-
-        connect(roomButton, &QPushButton::clicked, this, [this, room]() {
-            currentRoom = room;
-            displayItemsInGrid(roomDevices[room]);
-        });
-
-
-        roomButtonsLayout->addWidget(roomButton);
-    }
-
-    if (roomDevices.isEmpty()) {
-        QLabel *warningLabel = new QLabel("Предупреждение: Нет добавленных комнат. Пожалуйста, добавьте комнаты.", this);
-        warningLabel->setWordWrap(true);
-        warningLabel->setAlignment(Qt::AlignCenter);
-        gridLayout->addWidget(warningLabel, 0, 0, 1, 3);
-    }
-}
-
-void MainWindow::clearRoomButtons()
+void MainWindow::clearDisplay()
 {
     QLayoutItem *item;
-    while ((item = sideMenuLayout->takeAt(0)) != nullptr) {
+    while ((item = gridLayout->takeAt(0)) != nullptr) {
         delete item->widget();
         delete item;
     }
+
 }

@@ -53,6 +53,7 @@ else()
         add_executable(SmartHouseSystem
             ${PROJECT_SOURCES}
             ${PROJECT_HEADERS}
+            resources.qrc
         )
     endif()
 endif()

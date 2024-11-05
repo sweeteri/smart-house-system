@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
+#include <QStackedWidget>
 
 class MainWindow : public QWidget
 {
@@ -17,6 +18,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     void loadRoomsFromDatabase();
+    void setUserRole(const QString &role);
 
 signals:
     void backToMain();
@@ -46,7 +48,6 @@ private:
     QPushButton *addRoomButton;
     QPushButton *addDeviceButton;
     QPushButton *scenarioButton;
-    //QPushButton *allRoomsButton;
     QPushButton *addScenarioButton;
     QPushButton *allDevicesButton;
     QListWidget *roomsListWidget;
@@ -54,17 +55,19 @@ private:
     QWidget *sideMenu;
     QVBoxLayout *sideMenuLayout;
     QVBoxLayout *roomButtonsLayout;
-    QWidget *displayWidget;
+    QStackedWidget *displayWidget;
     QGridLayout *gridLayout;
 
+    QString userRole;
     QString currentRoom;
     QMap<QString, QVector<QString>> roomDevices;
 
     void initUI();
-    void displayItemsInGrid(const QVector<QString> &items);
+    void configureUIBasedOnRole();
+    void displayItemsInGrid(const QVector<QString> &items, bool isDevices);
     void clearGridLayout(QLayout *layout);
-    void updateDisplay();
-    void clearRoomButtons();
+    void clearDisplay();
+
 };
 
 #endif // MAINWINDOW_H

@@ -89,7 +89,16 @@ bool DatabaseManager::authenticateUser(const QString &username, const QString &p
     }
     return false;
 }
+QString DatabaseManager::getUserRole(const QString &username) {
+    QSqlQuery query;
+    query.prepare("SELECT role FROM users WHERE username = :username");
+    query.bindValue(":username", username);
 
+    if (query.exec() && query.next()) {
+        return query.value(0).toString();
+    }
+    return "";
+}
 bool DatabaseManager::userExists(const QString &username) {
     QSqlQuery query;
     query.prepare("SELECT COUNT(*) FROM users WHERE username = :username");
@@ -115,7 +124,6 @@ bool DatabaseManager::addRoom(const QString &roomName) {
 bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceName) {
     QSqlQuery query;
 
-    // Get room ID
     query.prepare("SELECT id FROM rooms WHERE name = :name");
     query.bindValue(":name", roomName);
 
@@ -126,7 +134,6 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceNa
 
     int roomId = query.value(0).toInt();
 
-    // Insert device
     query.prepare("INSERT INTO devices (room_id, name) VALUES (:room_id, :name)");
     query.bindValue(":room_id", roomId);
     query.bindValue(":name", deviceName);

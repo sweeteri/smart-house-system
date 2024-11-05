@@ -18,13 +18,15 @@ public:
     ~LoginWindow();
 
 signals:
-    void login_success();
+    void login_success(const QString &role);
 
 private slots:
     void onLoginClicked();
     void onRegisterClicked();
     void handleLoginResponse(const QJsonObject &response);
 
+public slots:
+    void showLoginWindow();
 private:
     QLineEdit *loginLineEdit;
     QLineEdit *passwordLineEdit;

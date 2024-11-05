@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QCryptographicHash>
+#include <QDir>
 
 LoginWindow::LoginWindow(QWidget *parent)
     : QMainWindow(parent), registrationWindow(nullptr)
@@ -40,8 +41,6 @@ LoginWindow::LoginWindow(QWidget *parent)
 
     connect(loginButton, &QPushButton::clicked, this, &LoginWindow::onLoginClicked);
     setGeometry(200, 200, 300, 300);
-
-    setStyleSheet("QMainWindow { background-image: url(""C:/Users/2005k/Documents/SmartHouseSystem/SmartHouseSystem/images/background.png"")}");
 
     buttonFrame->setStyleSheet("QFrame { background-color: #9fa7fb; border-radius: 10px; padding: 40px; margin: 70px}");
 
@@ -79,6 +78,10 @@ LoginWindow::LoginWindow(QWidget *parent)
 LoginWindow::~LoginWindow() {
 
 }
+
+void LoginWindow::showLoginWindow() {
+    this->show();
+}
 void LoginWindow::onLoginClicked() {
     qDebug() << "Login button clicked. Attempting to send login request.";
     QString username = loginLineEdit->text();
@@ -113,8 +116,9 @@ void LoginWindow::onRegisterClicked() {
 void LoginWindow::handleLoginResponse(const QJsonObject &response) {
     if (response["authenticated"].toBool()) {
         errorLabel->clear();
+        QString userRoleFromServer = response["role"].toString();
         qDebug() << "----IBUSKO---- LoginWindow::handleLoginRespons success";
-        emit login_success();
+        emit login_success(userRoleFromServer);
         this->hide();
         QMessageBox::information(this, "Success", response["message"].toString());
     } else {

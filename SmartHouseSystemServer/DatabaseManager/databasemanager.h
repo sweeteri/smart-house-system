@@ -24,6 +24,7 @@ public:
     QStringList getDevicesForRoom(const QString &roomName);
     bool addScenario(const QString &scenario);
     void initializeDatabase();
+    QString getUserRole(const QString &username);
 
 private:
     DatabaseManager();

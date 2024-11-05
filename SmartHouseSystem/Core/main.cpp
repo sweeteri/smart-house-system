@@ -17,14 +17,21 @@ int main(int argc, char *argv[])
 
     LoginWindow w;
     MainWindow* mainWindow = new MainWindow(nullptr);
-    QObject::connect(&w, &LoginWindow::login_success, mainWindow, [&]() {
+    QObject::connect(&w, &LoginWindow::login_success, mainWindow, [&](const QString &role) {
+        mainWindow->setUserRole(role);  // Set the role in MainWindow
+        mainWindow->show();
+    });
+    /*QObject::connect(&w, &LoginWindow::login_success, mainWindow, [&]() {
         mainWindow->show();
         // Запросы на сервер о данных
         QJsonObject request;
         request["action"] = "loadRooms";
         qDebug() << "----IBUSKO---- request[action] = \"loadRooms\";";
         NetworkManager::instance().sendRequest(request);
-
+    });*/
+    QObject::connect(mainWindow, &MainWindow::backToMain, &w, [&w, mainWindow]() {
+        w.showLoginWindow();
+        mainWindow->hide();
     });
     w.show();
 
