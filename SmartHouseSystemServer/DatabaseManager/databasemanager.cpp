@@ -109,6 +109,16 @@ bool DatabaseManager::userExists(const QString &username) {
     }
     return false;
 }
+bool DatabaseManager::adminExists() {
+    QSqlQuery query;
+    query.prepare("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+
+    if (query.exec() && query.next()) {
+        int adminCount = query.value(0).toInt();
+        return adminCount > 0;
+    }
+    return false;
+}
 bool DatabaseManager::addRoom(const QString &roomName) {
     QSqlQuery query;
     query.prepare("INSERT INTO rooms (name) VALUES (:name)");
