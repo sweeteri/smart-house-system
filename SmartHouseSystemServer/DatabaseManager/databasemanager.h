@@ -25,6 +25,7 @@ public:
     bool addScenario(const QString &scenario);
     void initializeDatabase();
     QString getUserRole(const QString &username);
+    bool adminExists();
 
 private:
     DatabaseManager();

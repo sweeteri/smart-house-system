@@ -65,11 +65,21 @@ void SmartHouseSystemServer::processRegistrationRequest(QTcpSocket *socket, cons
     QString username = request["username"].toString();
     QString password = request["password"].toString();
     QString role = request["role"].toString();
-
+    bool adminExists = DatabaseManager::instance().adminExists();
+    bool checkRole = ((role=="admin")&&(adminExists))? true: false;
     if (DatabaseManager::instance().userExists(username)) {
         QJsonObject response;
         response["success"] = false;
         response["message"] = "Username already exists.";
+        socket->write(QJsonDocument(response).toJson());
+        socket->flush();
+
+        return;
+    }
+    if (checkRole){
+        QJsonObject response;
+        response["success"] = false;
+        response["message"] = "Admin already exist. You cannot be admin.";
         socket->write(QJsonDocument(response).toJson());
         socket->flush();
 

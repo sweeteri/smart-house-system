@@ -28,6 +28,8 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
     roleComboBox->addItem("admin");
 
 
+
+
     registerButton = new QPushButton("Зарегистрироваться", this);
     connect(registerButton, &QPushButton::clicked, this, &RegistrationWindow::onRegisterClicked);
 
@@ -73,22 +75,7 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
                                         "border-radius: 15px;"
                                         "padding: 10px;"
                                         "}");
-    roleComboBox->setStyleSheet(
-        "QComboBox {"
-        "   background-color: #f78dae;"
-        "   border-radius: 15px;"
-        "   padding: 10px;"
-        "}"
-        "QComboBox::drop-down {"
-        "   border: none;"
-        "}"
-        "QComboBox QAbstractItemView {"
-        "   background-color: white;"
-        "   border-radius: 10px;"
-        "   padding: 5px;"
-        "   selection-background-color: #e69aad;"
-        "}"
-        );
+
 
     registerButton->setStyleSheet("QPushButton {"
                                   "background-color: #f78dae;"
