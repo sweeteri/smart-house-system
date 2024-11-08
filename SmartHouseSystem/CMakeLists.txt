@@ -18,7 +18,6 @@ find_package(Qt5 COMPONENTS Core Widgets Sql REQUIRED)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/Core
     ${CMAKE_CURRENT_SOURCE_DIR}/Auth
-    ${CMAKE_CURRENT_SOURCE_DIR}/Databasemanager
     ${CMAKE_CURRENT_SOURCE_DIR}/NetworkManager
 )
 
@@ -53,7 +52,6 @@ else()
         add_executable(SmartHouseSystem
             ${PROJECT_SOURCES}
             ${PROJECT_HEADERS}
-            resources.qrc
         )
     endif()
 endif()
