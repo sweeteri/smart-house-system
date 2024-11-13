@@ -4,6 +4,8 @@
 #include <QDebug>
 #include <QCoreApplication>
 #include <QDir>
+#include <QJsonObject>
+#include <QJsonDocument>
 
 DatabaseManager::DatabaseManager() {
     db = QSqlDatabase::addDatabase("QSQLITE");
@@ -51,19 +53,59 @@ void DatabaseManager::initializeDatabase() {
                     "name TEXT UNIQUE)")) {
         qDebug() << "Failed to create rooms table:" << query.lastError().text();
     }
+    if (!query.exec("CREATE TABLE IF NOT EXISTS device_types ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "type TEXT UNIQUE, "             // Type of device: "light", "heater"
+                    "parameters TEXT)")) {           // Shared parameters in JSON
+        qDebug() << "Failed to create device_types table:" << query.lastError().text();
+    }
     if (!query.exec("CREATE TABLE IF NOT EXISTS devices ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "room_id INTEGER, "
+                    "device_type_id INTEGER, "
+                    "device_group TEXT, "
                     "name TEXT, "
-                    "FOREIGN KEY (room_id) REFERENCES rooms(id))")) {
+                    "status TEXT DEFAULT 'off', "
+                    "last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                    "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE, "
+                    "FOREIGN KEY (device_type_id) REFERENCES device_types(id) ON DELETE CASCADE)")) {
         qDebug() << "Failed to create devices table:" << query.lastError().text();
+    }
+    if (!query.exec("CREATE TABLE IF NOT EXISTS sensors ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "room_id INTEGER, "
+                    "type TEXT, "
+                    "status TEXT DEFAULT 'active', "
+                    "last_signal TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                    "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE)")) {
+        qDebug() << "Failed to create sensors table:" << query.lastError().text();
+    }
+    if (!query.exec("CREATE TABLE IF NOT EXISTS sensor_events ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "sensor_id INTEGER, "
+                    "event_type TEXT, "
+                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                    "FOREIGN KEY (sensor_id) REFERENCES sensors(id) ON DELETE CASCADE)")) {
+        qDebug() << "Failed to create sensor_events table:" << query.lastError().text();
     }
     if (!query.exec("CREATE TABLE IF NOT EXISTS scenarios ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "name TEXT UNIQUE)")) {
+                    "name TEXT UNIQUE, "
+                    "trigger_event TEXT)")) {
         qDebug() << "Failed to create scenarios table:" << query.lastError().text();
     }
+    if (!query.exec("CREATE TABLE IF NOT EXISTS scenario_actions ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "scenario_id INTEGER, "
+                    "device_id INTEGER, "
+                    "action TEXT, "
+                    "parameters TEXT, " // JSON
+                    "FOREIGN KEY (scenario_id) REFERENCES scenarios(id) ON DELETE CASCADE, "
+                    "FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE)")) {
+        qDebug() << "Failed to create scenario_actions table:" << query.lastError().text();
+    }
 }
+
 bool DatabaseManager::registerUser(const QString &username, const QString &password, const QString &role) {
     QSqlQuery query;
     query.prepare("INSERT INTO users (username, password, role) VALUES (:username, :password, :role)");
@@ -131,42 +173,146 @@ bool DatabaseManager::addRoom(const QString &roomName) {
     return true;
 }
 
-bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceName) {
+bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceType, QString &generatedDeviceName) {
     QSqlQuery query;
 
     query.prepare("SELECT id FROM rooms WHERE name = :name");
     query.bindValue(":name", roomName);
-
     if (!query.exec() || !query.next()) {
         qDebug() << "Room not found: " << roomName;
         return false;
     }
-
     int roomId = query.value(0).toInt();
 
-    query.prepare("INSERT INTO devices (room_id, name) VALUES (:room_id, :name)");
+    QJsonObject parameters;
+    QString deviceGroup;
+
+    if (deviceType == "лампа") {
+        deviceGroup = "освещение";
+        parameters["on"] = false;
+    } else if (deviceType == "шторы") {
+        deviceGroup = "освещение";
+        parameters["on"] = false;
+    } else if (deviceType == "кондиционер") {
+        deviceGroup = "отопление";
+        parameters["temperature"] = 22;
+        parameters["mode"] = "auto";
+    } else if (deviceType == "обогреватель") {
+        deviceGroup = "отопление";
+        parameters["temperature"] = 22;
+        parameters["mode"] = "auto";
+    } else if (deviceType == "теплый пол") {
+        deviceGroup = "отопление";
+        parameters["temperature"] = 22;
+        parameters["mode"] = "auto";
+    } else if (deviceType == "увлажнитель") {
+        deviceGroup = "отопление";
+        parameters["humidity"] = 50;
+        parameters["on"] = false;
+    } else if (deviceType == "кофемашина") {
+        deviceGroup = "бытовая техника";
+        parameters["on"] = false;
+    } else if (deviceType == "стиральная машина") {
+        deviceGroup = "бытовая техника";
+        parameters["on"] = false;
+    } else if (deviceType == "робот-пылесос") {
+        deviceGroup = "бытовая техника";
+        parameters["on"] = false;
+    } else if (deviceType == "колонка") {
+        deviceGroup = "бытовая техника";
+        parameters["volume"] = 50;
+        parameters["on"] = false;
+    } else if (deviceType == "замок") {
+        deviceGroup = "безопасность";
+        parameters["locked"] = true;
+    } else if (deviceType == "сигнализация") {
+        deviceGroup = "безопасность";
+        parameters["locked"] = false;
+    } else {
+        qDebug() << "Unknown device type: " << deviceType;
+        return false;
+    }
+
+    query.prepare("SELECT id FROM device_types WHERE type = :device_type");
+    query.bindValue(":device_type", deviceType);
+    if (!query.exec()) {
+        qDebug() << "Failed to check device type: " << query.lastError().text();
+        return false;
+    }
+
+    int deviceTypeId;
+    if (!query.next()) {
+        query.prepare("INSERT INTO device_types (type, parameters) VALUES (:type, :parameters)");
+        query.bindValue(":type", deviceType);
+        query.bindValue(":parameters", QString(QJsonDocument(parameters).toJson(QJsonDocument::Compact)));
+        if (!query.exec()) {
+            qDebug() << "Failed to insert new device type: " << query.lastError().text();
+            return false;
+        }
+        deviceTypeId = query.lastInsertId().toInt();
+    } else {
+        deviceTypeId = query.value(0).toInt();
+    }
+
+    query.prepare("SELECT COUNT(*) FROM devices WHERE room_id = :room_id AND device_type_id = :device_type_id");
     query.bindValue(":room_id", roomId);
-    query.bindValue(":name", deviceName);
+    query.bindValue(":device_type_id", deviceTypeId);
+    if (!query.exec() || !query.next()) {
+        qDebug() << "Failed to count devices: " << query.lastError().text();
+        return false;
+    }
+    int deviceCount = query.value(0).toInt();
+
+    generatedDeviceName = deviceCount == 0 ? deviceType : QString("%1 %2").arg(deviceType).arg(deviceCount + 1);
+
+    query.prepare("INSERT INTO devices (room_id, device_type_id, device_group, name, status) "
+                  "VALUES (:room_id, :device_type_id, :device_group, :name, 'off')");
+    query.bindValue(":room_id", roomId);
+    query.bindValue(":device_type_id", deviceTypeId);
+    query.bindValue(":device_group", deviceGroup);
+    query.bindValue(":name", generatedDeviceName);
 
     if (!query.exec()) {
         qDebug() << "Failed to add device: " << query.lastError().text();
         return false;
     }
+
     return true;
 }
-QStringList DatabaseManager::getAllDevices() {
-    QStringList devices;
-    QSqlQuery query("SELECT name FROM devices");
+
+
+
+QMap<QString, QStringList> DatabaseManager::getAllDevices() {
+    QMap<QString, QStringList> deviceRoomMap;
+
+    QSqlQuery query(
+        "SELECT device_types.type AS device_type, rooms.name AS room_name "
+        "FROM devices "
+        "LEFT JOIN rooms ON devices.room_id = rooms.id "
+        "LEFT JOIN device_types ON devices.device_type_id = device_types.id"
+        );
 
     if (query.exec()) {
         while (query.next()) {
-            devices << query.value(0).toString();
+            QString deviceType = query.value("device_type").toString();
+            QString roomName = query.value("room_name").toString();
+
+            if (!deviceRoomMap.contains(deviceType)) {
+                deviceRoomMap[deviceType] = QStringList();
+            }
+
+            if (!roomName.isEmpty()) {
+                deviceRoomMap[deviceType] << roomName;
+            }
         }
     } else {
-        qDebug() << "Failed to retrieve devices: " << query.lastError().text();
+        qDebug() << "Failed to retrieve all devices grouped by type: " << query.lastError().text();
     }
-    return devices;
+
+    return deviceRoomMap;
 }
+
+
 
 QStringList DatabaseManager::getAllRooms() {
     QStringList rooms;

@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     LoginWindow w;
     MainWindow* mainWindow = new MainWindow(nullptr);
     QObject::connect(&w, &LoginWindow::login_success, mainWindow, [&](const QString &role) {
-        mainWindow->setUserRole(role);  // Set the role in MainWindow
+        mainWindow->setUserRole(role);
         mainWindow->show();
     });
     /*QObject::connect(&w, &LoginWindow::login_success, mainWindow, [&]() {

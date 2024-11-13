@@ -11,21 +11,24 @@ public:
         return instance;
     }
 
+    bool openConnection();
+    QSqlDatabase getDatabase();
+    void initializeDatabase();
+
     bool registerUser(const QString &username, const QString &password, const QString &role);
     bool authenticateUser(const QString &username, const QString &password);
     bool userExists(const QString &username);
-    bool openConnection();
-    QSqlDatabase getDatabase();
+    bool adminExists();
+    QString getUserRole(const QString &username);
+
     bool addRoom(const QString &roomName);
-    bool addDevice(const QString &roomName, const QString &deviceName);
-    QStringList getAllDevices();
+    bool addDevice(const QString &roomName, const QString &deviceType, QString &generatedDeviceName);
+    bool addScenario(const QString &scenario);
+
+    QMap<QString, QStringList> getAllDevices();
     QStringList getAllRooms();
     QStringList getAllScenarios();
     QStringList getDevicesForRoom(const QString &roomName);
-    bool addScenario(const QString &scenario);
-    void initializeDatabase();
-    QString getUserRole(const QString &username);
-    bool adminExists();
 
 private:
     DatabaseManager();
