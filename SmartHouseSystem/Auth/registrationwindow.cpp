@@ -24,11 +24,8 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
     confirmPasswordInput->setEchoMode(QLineEdit::Password);
 
     roleComboBox = new QComboBox(this);
-    roleComboBox->addItem("user");
     roleComboBox->addItem("admin");
-
-
-
+    roleComboBox->addItem("user");
 
     registerButton = new QPushButton("Зарегистрироваться", this);
     connect(registerButton, &QPushButton::clicked, this, &RegistrationWindow::onRegisterClicked);

@@ -140,15 +140,11 @@ void MainWindow::loadRoomsFromDatabase()
 
 void MainWindow::onAllDevicesButtonClicked()
 {
-    loadDevicesFromDatabase();
-}
-
-void MainWindow::loadDevicesFromDatabase()
-{
     QJsonObject request;
     request["action"] = "loadAllDevices";
     NetworkManager::instance().sendRequest(request);
 }
+
 
 void MainWindow::onAddRoomButtonClicked()
 {
@@ -179,7 +175,7 @@ void MainWindow::onAddDeviceButtonClicked()
         return;
     }
 
-    QStringList predefinedDevices = {"Лампа", "Термостат", "Камера", "Датчик движения"};
+    QStringList predefinedDevices = {"лампа", "кондиционер", "обогреватель", "тёплый пол", "увлажнитель", "колонка", "замок", "кофемашина", "сигнализация", "робот-пылесос", "шторы", "стиральная машина"};
     QString selectedDevice = QInputDialog::getItem(this, "Добавить устройство", "Выберите устройство:", predefinedDevices, 0, false);
 
     if (selectedDevice.isEmpty()) {
@@ -190,7 +186,7 @@ void MainWindow::onAddDeviceButtonClicked()
     QJsonObject request;
     request["action"] = "addDevice";
     request["roomName"] = currentRoom;
-    request["deviceName"] = selectedDevice;
+    request["deviceType"] = selectedDevice;
     NetworkManager::instance().sendRequest(request);
 }
 void MainWindow::onScenarioButtonClicked() {
@@ -301,12 +297,21 @@ void MainWindow::handleLoadAllDevicesResponse(const QJsonObject &response) {
     QJsonArray devicesArray = response["devices"].toArray();
 
     QVector<QString> devices;
-    for (const QJsonValue &device : devicesArray) {
-        QString deviceName = device.toString();
-        devices.push_back(deviceName);
-        displayItemsInGrid(devices, true);
+    for (const QJsonValue &value : devicesArray) {
+        QJsonObject deviceObject = value.toObject();
+        QString deviceType = deviceObject["type"].toString();
+        QJsonArray roomsArray = deviceObject["rooms"].toArray();
+        QStringList roomList;
+        for (const QJsonValue &room : roomsArray) {
+            roomList.append(room.toString());
+        }
+
+        QString deviceEntry = deviceType + ": " + roomList.join(", ");
+        devices.push_back(deviceEntry);
     }
+    displayAllDevicesInGrid(devices);
 }
+
 void MainWindow::handleAddRoomResponse(const QJsonObject &response) {
     bool status = response["success"].toBool();
     QString roomName = response["roomName"].toString();
@@ -328,17 +333,15 @@ void MainWindow::handleAddRoomResponse(const QJsonObject &response) {
 void MainWindow::handleAddDeviceResponse(const QJsonObject &response)
 {
     bool status = response["success"].toBool();
-    QString deviceName = response["deviceName"].toString();
-    QString roomName = response["roomName"].toString();
-
     if (status) {
+        QString deviceName = response["deviceName"].toString();
+        QString roomName = response["roomName"].toString();
         if (roomDevices.contains(roomName)) {
             roomDevices[roomName].append(deviceName);
         } else {
             roomDevices[roomName] = QVector<QString>({deviceName});
         }
 
-        loadDevicesFromDatabase();
         QMessageBox::information(this, "Success", "Device added successfully: " + deviceName);
     } else {
         QMessageBox::warning(this, "Error", "Failed to add device: " + response["message"].toString());
@@ -394,6 +397,50 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, bool isDevice
         if (++col >= 3) {
             col = 0;
             ++row;
+        }
+    }
+}
+void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
+{
+    clearGridLayout(gridLayout);
+
+    int row = 0, col = 0;
+    for (const QString &item : items) {
+        QStringList parts = item.split(":");
+        if (parts.size() < 2) {
+            continue;
+        }
+
+        QString device = parts[0].trimmed();
+        QStringList rooms = parts[1].split(",");
+        for (const QString &room : rooms) {
+            QString roomTrimmed = room.trimmed();
+            QString buttonText = roomTrimmed + "\n" + device;
+
+            QPushButton *button = new QPushButton(buttonText, this);
+            button->setFixedSize(100, 100);
+            button->setCheckable(true);
+            QString buttonStyle = "QPushButton {"
+                                  "background-color: #b3a2ee;"
+                                  "border-radius: 25px;"
+                                  "padding: 10px;"
+                                  "font: bold 16px 'New York';"
+                                  "}"
+                                  "QPushButton:hover {"
+                                  "background-color: #ffbaf5;"
+                                  "}";
+            button->setObjectName(buttonText);
+            button->setStyleSheet(buttonStyle);
+            addShadowEffect(button);
+            connect(button, &QPushButton::clicked, this, [button]() {
+                button->setStyleSheet(button->isChecked() ? "background-color: green;" : "background-color: red;");
+            });
+            gridLayout->addWidget(button, row, col);
+
+            if (++col >= 3) {
+                col = 0;
+                ++row;
+            }
         }
     }
 }

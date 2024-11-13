@@ -164,27 +164,43 @@ void SmartHouseSystemServer::processAddRoomRequest(QTcpSocket *socket, const QJs
 }
 
 void SmartHouseSystemServer::processLoadDevicesRequest(QTcpSocket *socket, const QJsonObject &request) {
-   QJsonArray deviceList = QJsonArray::fromStringList(DatabaseManager::instance().getAllDevices());
+    QMap<QString, QStringList> devices = DatabaseManager::instance().getAllDevices();
     QJsonObject response;
     response["action"] = "loadAllDevices";
-    response["devices"] = deviceList;
-    qDebug() << "---IBUSKO---- processLoadDevicesRequest";
+
+    QJsonArray devicesArray;
+    for (auto it = devices.begin(); it != devices.end(); ++it) {
+        QJsonObject deviceObject;
+        deviceObject["type"] = it.key();
+        deviceObject["rooms"] = QJsonArray::fromStringList(it.value());
+        devicesArray.append(deviceObject);
+    }
+    response["devices"] = devicesArray;
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
-
 }
+
 void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const QJsonObject &request) {
     QString roomName = request["roomName"].toString();
-    QString deviceName = request["deviceName"].toString();
-    bool success = DatabaseManager::instance().addDevice(roomName, deviceName);
+    QString deviceType = request["deviceType"].toString();
+
+    QString generatedDeviceName; // Переменная для хранения имени устройства
+    bool success = DatabaseManager::instance().addDevice(roomName, deviceType, generatedDeviceName);
 
     QJsonObject response;
     response["action"] = "addDevice";
     response["success"] = success;
     response["message"] = success ? "Device added successfully." : "Failed to add device.";
+
+    if (success) {
+        response["deviceName"] = generatedDeviceName; // Возвращаем имя устройства клиенту
+    }
+
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
+
+
 
 void SmartHouseSystemServer::processLoadScenariosRequest(QTcpSocket *socket, const QJsonObject &request) {
     QJsonArray scenarioList = QJsonArray::fromStringList(DatabaseManager::instance().getAllScenarios());
@@ -207,3 +223,4 @@ void SmartHouseSystemServer::processAddScenarioRequest(QTcpSocket *socket, const
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
+
