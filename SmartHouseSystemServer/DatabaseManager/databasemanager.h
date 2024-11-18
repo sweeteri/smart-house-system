@@ -29,6 +29,7 @@ public:
     QStringList getAllRooms();
     QStringList getAllScenarios();
     QStringList getDevicesForRoom(const QString &roomName);
+    QMap<QString, QStringList> getDevicesGroupedByType();
 
 private:
     DatabaseManager();
