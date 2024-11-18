@@ -5,6 +5,7 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QJsonObject>
+#include <QNetworkAccessManager>
 
 
 class SmartHouseSystemServer : public QTcpServer {
@@ -26,5 +27,10 @@ private slots:
 
     void processAddScenarioRequest(QTcpSocket *socket, const QJsonObject &request);
     void processAddDeviceRequest(QTcpSocket *socket, const QJsonObject &request);
+private:
+    QNetworkAccessManager *networkManager;
+    void sendRequestToFlask(const QJsonObject &request, const QString &endpoint);
+    void processControlDeviceRequest(QTcpSocket *socket, const QJsonObject &request);
+    void processDeviceGroupsRequest(QTcpSocket *socket, const QJsonObject &request);
 };
 #endif // SMARTHOUSESERVER_H

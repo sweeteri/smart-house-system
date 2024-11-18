@@ -187,47 +187,27 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
     QJsonObject parameters;
     QString deviceGroup;
 
-    if (deviceType == "лампа") {
-        deviceGroup = "освещение";
-        parameters["on"] = false;
-    } else if (deviceType == "шторы") {
+    if (deviceType == "лампа"||deviceType == "шторы") {
         deviceGroup = "освещение";
         parameters["on"] = false;
     } else if (deviceType == "кондиционер") {
         deviceGroup = "отопление";
         parameters["temperature"] = 22;
-        parameters["mode"] = "auto";
+        parameters["on"] = false;
     } else if (deviceType == "обогреватель") {
         deviceGroup = "отопление";
         parameters["temperature"] = 22;
-        parameters["mode"] = "auto";
-    } else if (deviceType == "теплый пол") {
-        deviceGroup = "отопление";
-        parameters["temperature"] = 22;
-        parameters["mode"] = "auto";
-    } else if (deviceType == "увлажнитель") {
+        parameters["on"] = false;
+    }  else if (deviceType == "увлажнитель") {
         deviceGroup = "отопление";
         parameters["humidity"] = 50;
         parameters["on"] = false;
-    } else if (deviceType == "кофемашина") {
+    } else if (deviceType == "кофемашина"||deviceType == "стиральная машина"||deviceType == "робот-пылесос"||deviceType == "колонка") {
         deviceGroup = "бытовая техника";
         parameters["on"] = false;
-    } else if (deviceType == "стиральная машина") {
-        deviceGroup = "бытовая техника";
-        parameters["on"] = false;
-    } else if (deviceType == "робот-пылесос") {
-        deviceGroup = "бытовая техника";
-        parameters["on"] = false;
-    } else if (deviceType == "колонка") {
-        deviceGroup = "бытовая техника";
-        parameters["volume"] = 50;
-        parameters["on"] = false;
-    } else if (deviceType == "замок") {
+    } else if (deviceType == "замок"||deviceType == "сигнализация") {
         deviceGroup = "безопасность";
-        parameters["locked"] = true;
-    } else if (deviceType == "сигнализация") {
-        deviceGroup = "безопасность";
-        parameters["locked"] = false;
+        parameters["on"] = false;
     } else {
         qDebug() << "Unknown device type: " << deviceType;
         return false;
@@ -371,3 +351,20 @@ bool DatabaseManager::addScenario(const QString &scenario) {
     }
     return true;
 }
+QMap<QString, QStringList> DatabaseManager::getDevicesGroupedByType() {
+    QMap<QString, QStringList> groupedDevices;
+    QSqlQuery query("SELECT device_group, name FROM devices");
+
+    while (query.next()) {
+        QString group = query.value(0).toString();
+        QString deviceName = query.value(1).toString();
+
+        if (!groupedDevices.contains(group)) {
+            groupedDevices[group] = QStringList();
+        }
+        groupedDevices[group].append(deviceName);
+    }
+
+    return groupedDevices;
+}
+

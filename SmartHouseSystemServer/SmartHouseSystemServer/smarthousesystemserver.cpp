@@ -5,9 +5,10 @@
 #include <QJsonArray>
 #include <QDebug>
 #include <QSqlQuery>
+#include <QNetworkReply>
 
 SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
-    : QTcpServer(parent) {
+    : QTcpServer(parent), networkManager(new QNetworkAccessManager(this)) {
     if (!this->listen(QHostAddress::LocalHost, 1234)) {
         qDebug() << "Server could not start!";
     } else {
@@ -184,7 +185,7 @@ void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const Q
     QString roomName = request["roomName"].toString();
     QString deviceType = request["deviceType"].toString();
 
-    QString generatedDeviceName; // Переменная для хранения имени устройства
+    QString generatedDeviceName;
     bool success = DatabaseManager::instance().addDevice(roomName, deviceType, generatedDeviceName);
 
     QJsonObject response;
@@ -193,7 +194,12 @@ void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const Q
     response["message"] = success ? "Device added successfully." : "Failed to add device.";
 
     if (success) {
-        response["deviceName"] = generatedDeviceName; // Возвращаем имя устройства клиенту
+        response["deviceName"] = generatedDeviceName;
+
+        QJsonObject flaskRequest;
+        flaskRequest["deviceName"] = generatedDeviceName;
+        flaskRequest["deviceType"] = deviceType;
+        sendRequestToFlask(flaskRequest, "create_device");
     }
 
     socket->write(QJsonDocument(response).toJson());
@@ -223,4 +229,69 @@ void SmartHouseSystemServer::processAddScenarioRequest(QTcpSocket *socket, const
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
+void SmartHouseSystemServer::sendRequestToFlask(const QJsonObject &request, const QString &endpoint) {
+    QUrl url("http://127.0.0.1:5000/" + endpoint);
+    QNetworkRequest flaskRequest(url);
+
+    flaskRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QNetworkReply *reply = networkManager->post(flaskRequest, QJsonDocument(request).toJson());
+
+    connect(reply, &QNetworkReply::finished, this, [reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray responseData = reply->readAll();
+            qDebug() << "Flask response: " << responseData;
+        } else {
+            qDebug() << "Error communicating with Flask: " << reply->errorString();
+        }
+        reply->deleteLater();
+    });
+}
+void SmartHouseSystemServer::processControlDeviceRequest(QTcpSocket *socket, const QJsonObject &request) {
+    QString deviceName = request["deviceName"].toString();
+    QString action = request["actionType"].toString(); // Например, "on" или "off"
+
+    QJsonObject flaskRequest;
+    flaskRequest["deviceName"] = deviceName;
+    flaskRequest["action"] = action;
+
+    sendRequestToFlask(flaskRequest, "control_device");
+
+    QJsonObject response;
+    response["success"] = true;
+    response["message"] = "Device control request sent to Flask.";
+    socket->write(QJsonDocument(response).toJson());
+    socket->flush();
+}
+void SmartHouseSystemServer::processDeviceGroupsRequest(QTcpSocket *socket, const QJsonObject &request) {
+    // Получаем устройства из базы данных
+    QMap<QString, QStringList> groupedDevices = DatabaseManager::instance().getDevicesGroupedByType();
+
+    // Формируем JSON-объект для отправки
+    QJsonObject jsonForFlask;
+    QJsonArray groupsArray;
+
+    for (auto it = groupedDevices.begin(); it != groupedDevices.end(); ++it) {
+        QJsonObject groupObject;
+        groupObject["group"] = it.key();
+        groupObject["devices"] = QJsonArray::fromStringList(it.value());
+        groupsArray.append(groupObject);
+    }
+
+    jsonForFlask["deviceGroups"] = groupsArray;
+
+    // Отправляем запрос на Flask
+    QJsonObject flaskResponse;
+    sendRequestToFlask(jsonForFlask, "distribute_tasks");
+
+    // Возвращаем результат клиенту
+    QJsonObject response;
+    response["action"] = "deviceGroupsComputation";
+    response["success"] = flaskResponse["success"].toBool();
+    response["message"] = flaskResponse["message"].toString();
+
+    socket->write(QJsonDocument(response).toJson());
+    socket->flush();
+}
+
 

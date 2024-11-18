@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
     } else {
         qWarning() << "Failed to connect to server.";
     }
+    QStringList availableDrivers = QSqlDatabase::drivers();
 
     LoginWindow w;
     MainWindow* mainWindow = new MainWindow(nullptr);
