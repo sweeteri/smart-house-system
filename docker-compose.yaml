@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: "${USER}"
+      POSTGRES_PASSWORD: "${PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db-init/:/docker-entrypoint-initdb.d/
+    ports:
+      - "${DB_PORT}:5432"
+    networks:
+      - app-network
+
+  qt_server:
+    build: ./SmartHouseSystemServer
+    ports:
+      - "${APP_PORT}:1234"
+    environment:
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT}"
+      DB_USER: "${USER}"
+      DB_PASSWORD: "${PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+    networks:
+      - app-network
+    depends_on:
+      - database
+
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "./test_db"
+      o: bind
+  
+networks:
+  app-network:
+    driver: bridge
+

@@ -9,7 +9,7 @@
 
 SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
     : QTcpServer(parent), networkManager(new QNetworkAccessManager(this)) {
-    if (!this->listen(QHostAddress::LocalHost, 1234)) {
+    if (!this->listen(QHostAddress::Any, 1234)) {
         qDebug() << "Server could not start!";
     } else {
         qDebug() << "Server started!";
