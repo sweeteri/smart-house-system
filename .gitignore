@@ -9,7 +9,7 @@ CMakeLists.txt.user
 Makefile
 *.ninja
 *.rules
- 
+
 # Qt generated files
 *.pro.user
 *.autosave
