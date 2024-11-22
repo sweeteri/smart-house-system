@@ -10,11 +10,11 @@
 
 DatabaseManager::DatabaseManager() {
 
-    QString dbHost = qEnvironmentVariable("DB_HOST", "database");
-    QString dbPort = qEnvironmentVariable("DB_PORT", "5432");
-    QString dbUser = qEnvironmentVariable("USER", "postgres");
-    QString dbPassword = qEnvironmentVariable("PASSWORD", "itsemitka76");
-    QString dbName = qEnvironmentVariable("DB_NAME", "smarthouse");
+    QString dbHost = QString::fromUtf8(qgetenv("DB_HOST"));
+    QString dbPort = QString::fromUtf8(qgetenv("DB_PORT"));
+    QString dbUser = QString::fromUtf8(qgetenv("DB_USER"));
+    QString dbPassword = QString::fromUtf8(qgetenv("DB_PASSWORD"));
+    QString dbName = QString::fromUtf8(qgetenv("DB_NAME"));
 
     QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL");
     db.setHostName(dbHost);
