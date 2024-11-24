@@ -26,7 +26,7 @@ set(PROJECT_SOURCES
     Core/mainwindow.cpp
     Auth/loginwindow.cpp
     Auth/registrationwindow.cpp
-    Networkmanager/networkmanager.cpp
+    NetworkManager/networkmanager.cpp
 )
 
 set(PROJECT_HEADERS
