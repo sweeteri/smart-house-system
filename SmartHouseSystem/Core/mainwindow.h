@@ -40,7 +40,6 @@ private slots:
     void handleAddScenarioResponse(const QJsonObject &response);
     void handleLoadRoomDevicesResponse(const QJsonObject &response);
 
-
 private:
 
     QPushButton *logoutButton;
@@ -51,6 +50,7 @@ private:
     QPushButton *allDevicesButton;
     QListWidget *roomsListWidget;
 
+    QWidget *centralWidget;
     QWidget *sideMenu;
     QVBoxLayout *sideMenuLayout;
     QVBoxLayout *roomButtonsLayout;

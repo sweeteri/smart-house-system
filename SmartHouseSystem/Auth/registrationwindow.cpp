@@ -53,37 +53,49 @@ RegistrationWindow::RegistrationWindow(QWidget *parent) : QWidget(parent)
     QPalette palette = this->palette();
     setPalette(palette);
 
-    buttonFrame->setStyleSheet("QFrame { background-color: #9fa7fb; border-radius: 10px; padding: 40px; margin: 70px;}");
+    setStyleSheet("background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,  "
+                  "stop: 0.5 #333464, stop: 1 #7a54a6);");
+
+
+    buttonFrame->setStyleSheet("QFrame { background-color: rgb(191, 161, 249, 50); border-radius: 10px; padding: 40px; margin: 70px}");
 
     usernameInput->setStyleSheet("QLineEdit {"
-                                 "background-color: white;"
+                                 "background-color: rgb(191, 161, 249, 50); "
                                  "border-radius: 15px;"
+                                 "color: white;"
                                  "padding: 10px;"
                                  "}");
-
     passwordInput->setStyleSheet("QLineEdit {"
-                                 "background-color: white;"
+                                 "background-color: rgb(191, 161, 249, 50); "
                                  "border-radius: 15px;"
+                                 "color: white;"
                                  "padding: 10px;"
                                  "}");
 
     confirmPasswordInput->setStyleSheet("QLineEdit {"
-                                        "background-color: white;"
+                                        "background-color: rgb(191, 161, 249, 50); "
                                         "border-radius: 15px;"
+                                        "color: white;"
                                         "padding: 10px;"
                                         "}");
 
-
     registerButton->setStyleSheet("QPushButton {"
-                                  "background-color: #f78dae;"
+                                  "background-color: #c8a7ff; "
                                   "border-radius: 15px;"
                                   "padding: 10px;"
+                                  "font:  bold 14px  'New york';"
                                   "}");
-
+    roleComboBox->setStyleSheet("QComboBox {"
+                                "background-color: rgb(191, 161, 249, 50); "
+                                "border-radius: 15px;"
+                                "color: white;"
+                                "padding: 10px;"
+                                "}");
     backToLoginButton->setStyleSheet("QPushButton {"
-                                     "background-color: #f78dae;"
+                                     "background-color: #c8a7ff; "
                                      "border-radius: 15px;"
                                      "padding: 10px;"
+                                     "font:  bold 14px  'New york';"
                                      "}");
 }
 
