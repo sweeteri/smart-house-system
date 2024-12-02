@@ -190,7 +190,11 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
     if (deviceType == "лампа"||deviceType == "шторы") {
         deviceGroup = "освещение";
         parameters["on"] = false;
-    } else if (deviceType == "кондиционер"||(deviceType == "обогреватель")||(deviceType == "тёплый пол")) {
+    } else if (deviceType == "кондиционер") {
+        deviceGroup = "отопление";
+        parameters["temperature"] = 22;
+        parameters["on"] = false;
+    } else if (deviceType == "обогреватель") {
         deviceGroup = "отопление";
         parameters["temperature"] = 22;
         parameters["on"] = false;
