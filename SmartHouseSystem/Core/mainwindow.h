@@ -24,6 +24,7 @@ signals:
     void backToMain();
 
 private slots:
+    void onNoticeButtonClicked();
     void onAddRoomButtonClicked();
     void onAddDeviceButtonClicked();
     void onAllDevicesButtonClicked();
