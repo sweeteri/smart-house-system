@@ -42,33 +42,39 @@ LoginWindow::LoginWindow(QWidget *parent)
     connect(loginButton, &QPushButton::clicked, this, &LoginWindow::onLoginClicked);
     setGeometry(200, 200, 300, 300);
 
-    buttonFrame->setStyleSheet("QFrame { background-color: #9fa7fb; border-radius: 10px; padding: 40px; margin: 70px}");
+    centralWidget->setStyleSheet("background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,  "
+                                 "stop: 0.5 #333464, stop: 1 #7a54a6);");
+
+
+    buttonFrame->setStyleSheet("QFrame { background-color: rgb(191, 161, 249, 50); border-radius: 10px; padding: 40px; margin: 70px}");
 
     loginLineEdit ->setStyleSheet("QLineEdit {"
-                                 "background-color: white;"
+                                 "background-color: rgb(191, 161, 249, 50);"
                                  "border-radius: 15px;"
+                                 "color: white;"
                                  "padding: 10px;"
                                  "}");
     passwordLineEdit ->setStyleSheet("QLineEdit {"
-                                    "background-color:  white; "
+                                    "background-color: rgb(191, 161, 249, 50); "
                                     "border-radius: 15px;"
+                                    "color: white;"
                                     "padding: 10px;"
                                     "}");
     loginButton ->setStyleSheet("QPushButton {"
-                               "background-color: #f78dae; "
+                               "background-color: #c8a7ff; "
                                "border-radius: 15px;"
                                "padding: 10px;"
-                               "font: bold 14px  'New york';"
+                               "font:  bold 14px  'New york';"
                                "}");
     errorLabel ->setStyleSheet("QLabel {"
-                              "background-color: #9fa7fb; "
+                                "background-color: rgb(191, 161, 249, 0); "
                               "border-radius: 15px;"
                               "padding: 10px;"
                               "font: bold 14px  'New york';"
                               "margin: 0;"
                               "}");
     registerButton ->setStyleSheet("QPushButton {"
-                                  "background-color: #f78dae; "
+                                  "background-color: #c8a7ff; "
                                   "border-radius: 15px;"
                                   "padding: 10px;"
                                   "font: bold 14px  'New york';"
