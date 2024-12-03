@@ -1,9 +1,0 @@
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/SmartHouseSystem.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/edit_cache.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/rebuild_cache.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/list_install_components.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/install.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/install/local.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/install/strip.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/SmartHouseSystem_autogen_timestamp_deps.dir
-/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/SmartHouseSystem/build_ninja/CMakeFiles/SmartHouseSystem_autogen.dir
