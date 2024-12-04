@@ -11,6 +11,11 @@
 #include <QGraphicsDropShadowEffect>
 #include <QStackedWidget>
 #include <QFontDatabase>
+#include <QMenu>
+#include <QAction>
+
+
+
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
@@ -121,7 +126,7 @@ void MainWindow::initUI() {
                           "border-radius: 25px;"
                           "padding: 10px;"
                           "color: #e7c9ef;"
-                          "font: bold 20px 'Oswald';"
+                          "font: bold 16px 'New York';"
                           "}"
                           "QPushButton:hover {"
                           "background-color: rgb(114, 7, 168, 40);"
@@ -130,7 +135,7 @@ void MainWindow::initUI() {
     scenarioButton->setStyleSheet(buttonStyle);
     allDevicesButton->setObjectName("allDevicesButton");
     allDevicesButton->setStyleSheet(buttonStyle);
-    logoutButton -> setStyleSheet("QPushButton {""background-color: #7471c4; ""border-radius: 10px;""padding: 6px;""font: bold 20px  'Oswald';""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+    logoutButton -> setStyleSheet("QPushButton {""background-color: #7471c4; ""border-radius: 10px;""padding: 6px;""font: bold 20px  'New York';""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
     addRoomButton->setStyleSheet(buttonStyle);
     addDeviceButton ->setStyleSheet(buttonStyle);
     addScenarioButton->setStyleSheet(buttonStyle);
@@ -158,7 +163,15 @@ void MainWindow::onAddRoomButtonClicked()
     QString selectedRoom = QInputDialog::getItem(this, "Добавить помещение", "Выберите помещение:", predefinedRooms, 0, false);
 
     if (selectedRoom.isEmpty() || roomDevices.contains(selectedRoom)) {
-        QMessageBox::warning(this, "Ошибка", roomDevices.contains(selectedRoom) ? "Комната уже существует." : "Не выбрано.");
+        //QMessageBox::warning(this, "Ошибка", roomDevices.contains(selectedRoom) ? "Комната уже существует." : "Не выбрано.");
+        QMessageBox msgBox;
+        msgBox.setText(roomDevices.contains(selectedRoom) ? "Комната уже существует." : "Не выбрано.");
+        msgBox.setWindowTitle("Ошибка");
+        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+        msgBox.exec();
+
         return;
     }
 
@@ -254,9 +267,6 @@ void MainWindow::handleLoadRoomsResponse(const QJsonObject &response) {
         delete widget;
     }
 
-    int fontId = QFontDatabase::addApplicationFont("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/Oswald/Oswald-VariableFont_wght.ttf");
-    QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
-    QString oswaldFont = fontFamilies.isEmpty() ? "Arial" : fontFamilies.at(0);
 
     for (const QJsonValue &value : roomsArray) {
         QString roomName = value.toString();
@@ -271,7 +281,7 @@ void MainWindow::handleLoadRoomsResponse(const QJsonObject &response) {
                               "background-color: #b3a2ee;"
                               "border-radius: 30px;"
                               "padding: 10px;"
-                              "font: bold 20px '" + oswaldFont + "';"
+                              "font: bold 16px 'New York';"
                               "}"
                               "QPushButton:hover {"
                               "background-color: rgb(114, 7, 168, 40);"
@@ -509,12 +519,63 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, bool isDevice
 
         connect(button, &QPushButton::clicked, this, [button, isOff]() {
             if (*isOff) {
-                button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 25px;}");
+                button->setStyleSheet("QPushButton { background-color: rgb(251, 117, 255, 100);""border-radius: 25px;}");
             } else {
-                button->setStyleSheet("QPushButton { background-color: #f9e2bd;""border-radius: 25px;}");
+                button->setStyleSheet("QPushButton { background-color: rgb(191, 161, 249, 50);""border-radius: 25px;}");
             }
             *isOff = !(*isOff); // Переключаем состояние
         });
+        if (item == "обогреватель" || item == "кондиционер" || item == "тёплый пол") {
+            button->setContextMenuPolicy(Qt::CustomContextMenu);
+            connect(button, &QPushButton::customContextMenuRequested, this, [this, button](const QPoint &pos) {
+                QMenu contextMenu(tr("Контекстное меню"), this);
+
+                QAction *action1 = new QAction("Выбрать температуру", this);
+                connect(action1, &QAction::triggered, this, [this]() {
+                    bool ok;
+                    int temperature = QInputDialog::getInt(this, "Выбор температуры", "Введите температуру (°C):", 20, 0, 30, 1, &ok);
+                    if (ok) {
+                        QMessageBox msgBox;
+                        msgBox.setText(QString("Вы выбрали: %1 °C").arg(temperature));
+                        msgBox.setWindowTitle("Температура");
+                        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+                        msgBox.exec();
+
+                    }
+                });
+
+                contextMenu.addAction(action1);
+                contextMenu.exec(button->mapToGlobal(pos));
+            });
+        }
+        if (item == "увлажнитель") {
+            button->setContextMenuPolicy(Qt::CustomContextMenu);
+            connect(button, &QPushButton::customContextMenuRequested, this, [this, button](const QPoint &pos) {
+                QMenu contextMenu(tr("Контекстное меню"), this);
+
+                QAction *action1 = new QAction("Выбрать влажность", this);
+                connect(action1, &QAction::triggered, this, [this]() {
+                    bool ok;
+                    int temperature = QInputDialog::getInt(this, "Выбор влажности", "Введите влажность (°C):", 50, 0, 100, 5, &ok);
+                    if (ok) {
+                        QMessageBox msgBox;
+                        msgBox.setText(QString("Вы выбрали: %1 °C").arg(temperature));
+                        msgBox.setWindowTitle("Температура");
+                        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+                        msgBox.exec();
+
+                    }
+                });
+
+                contextMenu.addAction(action1);
+                contextMenu.exec(button->mapToGlobal(pos));
+            });
+        }
+
         gridLayout->addWidget(button, row, col);
         if (++col >= 3) {
             col = 0;
@@ -548,7 +609,7 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
                                   "border-radius: 20px;"
                                   "padding: 10px;"
                                   "color: #e7c9ef;"
-                                  "font: bold 23px 'Oswald';"
+                                  "font: bold 18px 'New York';"
                                   "}"
                                   "QPushButton:hover {"
                                   "background-color: rgb(114, 7, 168, 40);"
@@ -562,12 +623,64 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
             bool *isOff = new bool(true);
             connect(button, &QPushButton::clicked, this, [button, isOff]() {
                 if (*isOff) {
-                    button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;");
+                    button->setStyleSheet("QPushButton { background-color: rgb(251, 117, 255, 100) ;""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 18px 'New York';}");
                 } else {
-                    button->setStyleSheet("QPushButton { background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';}");
+                    button->setStyleSheet("QPushButton { background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 18px 'New York';}");
                 }
                 *isOff = !(*isOff); // Переключаем состояние
             });
+
+            if (device == "обогреватель" || device == "кондиционер" || device == "тёплый пол") {
+                button->setContextMenuPolicy(Qt::CustomContextMenu);
+                connect(button, &QPushButton::customContextMenuRequested, this, [this, button](const QPoint &pos) {
+                    QMenu contextMenu(tr("Контекстное меню"), this);
+
+                    QAction *action1 = new QAction("Выбрать температуру", this);
+                    connect(action1, &QAction::triggered, this, [this]() {
+                        bool ok;
+                        int temperature = QInputDialog::getInt(this, "Выбор температуры", "Введите температуру (°C):", 20, 0, 30, 1, &ok);
+                        if (ok) {
+                            QMessageBox msgBox;
+                            msgBox.setText(QString("Вы выбрали: %1 °C").arg(temperature));
+                            msgBox.setWindowTitle("Температура");
+                            msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                                                 "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                                                 "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+                            msgBox.exec();
+
+                        }
+                    });
+
+                    contextMenu.addAction(action1);
+                    contextMenu.exec(button->mapToGlobal(pos));
+                });
+            }
+            if (device == "увлажнитель") {
+                button->setContextMenuPolicy(Qt::CustomContextMenu);
+                connect(button, &QPushButton::customContextMenuRequested, this, [this, button](const QPoint &pos) {
+                    QMenu contextMenu(tr("Контекстное меню"), this);
+
+                    QAction *action1 = new QAction("Выбрать влажность", this);
+                    connect(action1, &QAction::triggered, this, [this]() {
+                        bool ok;
+                        int temperature = QInputDialog::getInt(this, "Выбор влажности", "Введите влажность (°C):", 50, 0, 100, 5, &ok);
+                        if (ok) {
+                            QMessageBox msgBox;
+                            msgBox.setText(QString("Вы выбрали: %1 °C").arg(temperature));
+                            msgBox.setWindowTitle("Температура");
+                            msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                                                 "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                                                 "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+                            msgBox.exec();
+
+                        }
+                    });
+
+                    contextMenu.addAction(action1);
+                    contextMenu.exec(button->mapToGlobal(pos));
+                });
+            }
+
             gridLayout->addWidget(button, row, col);
 
             if (++col >= 3) {
