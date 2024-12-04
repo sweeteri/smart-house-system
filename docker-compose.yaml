@@ -30,6 +30,17 @@ services:
       - app-network
     depends_on:
       - database
+ 
+
+  flask_manager:
+    build: ./flask_manager
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    
 
 volumes:
   db_data:
