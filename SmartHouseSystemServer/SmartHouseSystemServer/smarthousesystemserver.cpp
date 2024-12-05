@@ -212,6 +212,7 @@ void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const Q
 void SmartHouseSystemServer::sendCreateContainerRequest(const QString &deviceName, const QString &deviceType, const QString &roomName) {
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     QUrl url("http://flask_manager:5000/create_image");
+
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
@@ -271,6 +272,7 @@ void SmartHouseSystemServer::processToggleDeviceRequest(QTcpSocket *socket, cons
     toggleDevice(deviceName, roomName, state);
 
     response["success"] = true;
+
     response["message"] = state ? "Device started successfully." : "Device stopped successfully.";
 
     socket->write(QJsonDocument(response).toJson());

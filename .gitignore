@@ -240,6 +240,7 @@ atlassian-ide-plugin.xml
 .vscode/
 
 cache/
+
 SmartHouseSystem/resources/
 test_db/
 

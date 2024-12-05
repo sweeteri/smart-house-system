@@ -24,6 +24,7 @@ signals:
     void backToMain();
 
 private slots:
+    void onNoticeButtonClicked();
     void onAddRoomButtonClicked();
     void onAddDeviceButtonClicked();
     void onAllDevicesButtonClicked();
@@ -47,6 +48,7 @@ private slots:
 private:
 
     QPushButton *logoutButton;
+    QPushButton *noticeButton;
     QPushButton *addRoomButton;
     QPushButton *addDeviceButton;
     QPushButton *scenarioButton;
