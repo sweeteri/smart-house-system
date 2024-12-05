@@ -9,7 +9,7 @@
 
 SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
     : QTcpServer(parent), networkManager(new QNetworkAccessManager(this)) {
-    if (!this->listen(QHostAddress::LocalHost, 1234)) {
+    if (!this->listen(QHostAddress::Any, 1234)) {
         qDebug() << "Server could not start!";
     } else {
         qDebug() << "Server started!";
@@ -49,6 +49,8 @@ SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
                     processAddDeviceRequest(socket, request);
                 } else if (action=="loadRoomDevices"){
                     processRoomDevicesRequest(socket, request);
+                }else if (action=="toggleDevice"){
+                    processToggleDeviceRequest(socket, request);
                 }
 
             }
@@ -199,8 +201,79 @@ void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const Q
         QJsonObject flaskRequest;
         flaskRequest["deviceName"] = generatedDeviceName;
         flaskRequest["deviceType"] = deviceType;
-        sendRequestToFlask(flaskRequest, "create_device");
+        flaskRequest["roomName"] = roomName;
+        sendCreateContainerRequest(generatedDeviceName, deviceType, roomName);
     }
+
+    socket->write(QJsonDocument(response).toJson());
+    socket->flush();
+
+}
+void SmartHouseSystemServer::sendCreateContainerRequest(const QString &deviceName, const QString &deviceType, const QString &roomName) {
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    QUrl url("http://flask_manager:5000/create_image");
+
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QJsonObject json;
+    json["device_name"] = deviceName;
+    json["device_type"] = deviceType;
+    json["room_name"] = roomName;
+
+
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson();
+
+    QNetworkReply *reply = networkManager->post(request, data);
+    connect(reply, &QNetworkReply::finished, [reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            qDebug() << "Device container created successfully:" << reply->readAll();
+        } else {
+            qDebug() << "Failed to create device container:" << reply->errorString();
+        }
+        reply->deleteLater();
+    });
+}
+void SmartHouseSystemServer::toggleDevice(const QString &deviceName, const QString &roomName, bool state) {
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    QUrl url("http://flask_manager:5000/toggle_device");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QJsonObject json;
+    json["device_name"] = deviceName;
+    json["room_name"] = roomName;
+    json["action"] = state ? "start" : "stop";
+
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson();
+    qDebug() << "Sending request to Flask:" << data;
+    QNetworkReply *reply = networkManager->post(request, data);
+    connect(reply, &QNetworkReply::finished, [reply, deviceName, roomName, state]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            qDebug() << (state ? "Device started:" : "Device stopped:") << reply->readAll();
+        } else {
+            qDebug() << "Failed to toggle device state:" << reply->errorString();
+        }
+        reply->deleteLater();
+    });
+}
+void SmartHouseSystemServer::processToggleDeviceRequest(QTcpSocket *socket, const QJsonObject &request) {
+    QString deviceName = request["deviceName"].toString();
+    QString roomName = request["roomName"].toString();
+    bool state = request["state"].toBool();
+
+    QJsonObject response;
+    response["action"] = "toggleDevice";
+    response["deviceName"] = deviceName;
+    response["roomName"] = roomName;
+    // Вызов метода управления устройством
+    toggleDevice(deviceName, roomName, state);
+
+    response["success"] = true;
+
+    response["message"] = state ? "Device started successfully." : "Device stopped successfully.";
 
     socket->write(QJsonDocument(response).toJson());
     socket->flush();

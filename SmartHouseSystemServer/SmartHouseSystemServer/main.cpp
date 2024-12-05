@@ -1,4 +1,3 @@
-#include <QDebug>
 #include "smarthousesystemserver.h"
 #include <QCoreApplication>
 

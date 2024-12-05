@@ -24,6 +24,7 @@ signals:
     void backToMain();
 
 private slots:
+    void onNoticeButtonClicked();
     void onAddRoomButtonClicked();
     void onAddDeviceButtonClicked();
     void onAllDevicesButtonClicked();
@@ -40,9 +41,13 @@ private slots:
     void handleAddScenarioResponse(const QJsonObject &response);
     void handleLoadRoomDevicesResponse(const QJsonObject &response);
 
+    void handleToggleDeviceResponse(const QJsonObject &response);
+
+
 private:
 
     QPushButton *logoutButton;
+    QPushButton *noticeButton;
     QPushButton *addRoomButton;
     QPushButton *addDeviceButton;
     QPushButton *scenarioButton;
@@ -63,7 +68,7 @@ private:
 
     void initUI();
     void configureUIBasedOnRole();
-    void displayItemsInGrid(const QVector<QString> &items, bool isDevices);
+    void displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices);
     void displayAllDevicesInGrid(const QVector<QString> &items);
     void clearGridLayout(QLayout *layout);
     void clearDisplay();

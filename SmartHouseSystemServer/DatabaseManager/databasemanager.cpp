@@ -6,20 +6,29 @@
 #include <QDir>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QProcessEnvironment>
 
 DatabaseManager::DatabaseManager() {
-    db = QSqlDatabase::addDatabase("QSQLITE");
 
-    QString dbPath = QDir(QCoreApplication::applicationDirPath()).filePath("database.sqlite");
-    db.setDatabaseName(dbPath);
+    QString dbHost = QString::fromUtf8(qgetenv("DB_HOST"));
+    QString dbPort = QString::fromUtf8(qgetenv("DB_PORT"));
+    QString dbUser = QString::fromUtf8(qgetenv("DB_USER"));
+    QString dbPassword = QString::fromUtf8(qgetenv("DB_PASSWORD"));
+    QString dbName = QString::fromUtf8(qgetenv("DB_NAME"));
+
+    QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL");
+    db.setHostName(dbHost);
+    db.setPort(dbPort.toInt());
+    db.setDatabaseName(dbName);
+    db.setUserName(dbUser);
+    db.setPassword(dbPassword);
 
     if (!db.open()) {
         qDebug() << "Database error occurred:" << db.lastError().text();
     } else {
-        initializeDatabase();
+        qDebug() << "Database opened successfully:" << db.lastError().text();
     }
 }
-
 
 DatabaseManager::~DatabaseManager() {
     if (db.isOpen()) {
@@ -38,72 +47,6 @@ bool DatabaseManager::openConnection() {
 
 QSqlDatabase DatabaseManager::getDatabase() {
     return db;
-}
-void DatabaseManager::initializeDatabase() {
-    QSqlQuery query;
-    if (!query.exec("CREATE TABLE IF NOT EXISTS users ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "username TEXT UNIQUE, "
-                    "password TEXT, "
-                    "role TEXT)")) {
-        qDebug() << "Failed to create users table:" << query.lastError().text();
-    }
-    if (!query.exec("CREATE TABLE IF NOT EXISTS rooms ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "name TEXT UNIQUE)")) {
-        qDebug() << "Failed to create rooms table:" << query.lastError().text();
-    }
-    if (!query.exec("CREATE TABLE IF NOT EXISTS device_types ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "type TEXT UNIQUE, "             // Type of device: "light", "heater"
-                    "parameters TEXT)")) {           // Shared parameters in JSON
-        qDebug() << "Failed to create device_types table:" << query.lastError().text();
-    }
-    if (!query.exec("CREATE TABLE IF NOT EXISTS devices ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "room_id INTEGER, "
-                    "device_type_id INTEGER, "
-                    "device_group TEXT, "
-                    "name TEXT, "
-                    "status TEXT DEFAULT 'off', "
-                    "last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
-                    "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE, "
-                    "FOREIGN KEY (device_type_id) REFERENCES device_types(id) ON DELETE CASCADE)")) {
-        qDebug() << "Failed to create devices table:" << query.lastError().text();
-    }
-    if (!query.exec("CREATE TABLE IF NOT EXISTS sensors ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "room_id INTEGER, "
-                    "type TEXT, "
-                    "status TEXT DEFAULT 'active', "
-                    "last_signal TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
-                    "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE)")) {
-        qDebug() << "Failed to create sensors table:" << query.lastError().text();
-    }
-    if (!query.exec("CREATE TABLE IF NOT EXISTS sensor_events ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "sensor_id INTEGER, "
-                    "event_type TEXT, "
-                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
-                    "FOREIGN KEY (sensor_id) REFERENCES sensors(id) ON DELETE CASCADE)")) {
-        qDebug() << "Failed to create sensor_events table:" << query.lastError().text();
-    }
-    if (!query.exec("CREATE TABLE IF NOT EXISTS scenarios ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "name TEXT UNIQUE, "
-                    "trigger_event TEXT)")) {
-        qDebug() << "Failed to create scenarios table:" << query.lastError().text();
-    }
-    if (!query.exec("CREATE TABLE IF NOT EXISTS scenario_actions ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "scenario_id INTEGER, "
-                    "device_id INTEGER, "
-                    "action TEXT, "
-                    "parameters TEXT, " // JSON
-                    "FOREIGN KEY (scenario_id) REFERENCES scenarios(id) ON DELETE CASCADE, "
-                    "FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE)")) {
-        qDebug() << "Failed to create scenario_actions table:" << query.lastError().text();
-    }
 }
 
 bool DatabaseManager::registerUser(const QString &username, const QString &password, const QString &role) {
@@ -131,6 +74,7 @@ bool DatabaseManager::authenticateUser(const QString &username, const QString &p
     }
     return false;
 }
+
 QString DatabaseManager::getUserRole(const QString &username) {
     QSqlQuery query;
     query.prepare("SELECT role FROM users WHERE username = :username");
@@ -141,6 +85,7 @@ QString DatabaseManager::getUserRole(const QString &username) {
     }
     return "";
 }
+
 bool DatabaseManager::userExists(const QString &username) {
     QSqlQuery query;
     query.prepare("SELECT COUNT(*) FROM users WHERE username = :username");
@@ -151,6 +96,7 @@ bool DatabaseManager::userExists(const QString &username) {
     }
     return false;
 }
+
 bool DatabaseManager::adminExists() {
     QSqlQuery query;
     query.prepare("SELECT COUNT(*) FROM users WHERE role = 'admin'");
@@ -161,6 +107,7 @@ bool DatabaseManager::adminExists() {
     }
     return false;
 }
+
 bool DatabaseManager::addRoom(const QString &roomName) {
     QSqlQuery query;
     query.prepare("INSERT INTO rooms (name) VALUES (:name)");
@@ -190,11 +137,7 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
     if (deviceType == "лампа"||deviceType == "шторы") {
         deviceGroup = "освещение";
         parameters["on"] = false;
-    } else if (deviceType == "кондиционер") {
-        deviceGroup = "отопление";
-        parameters["temperature"] = 22;
-        parameters["on"] = false;
-    } else if (deviceType == "обогреватель") {
+    } else if (deviceType == "кондиционер"||(deviceType == "обогреватель")||(deviceType == "тёплый пол")) {
         deviceGroup = "отопление";
         parameters["temperature"] = 22;
         parameters["on"] = false;
@@ -260,54 +203,60 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
     return true;
 }
 
-
-
 QMap<QString, QStringList> DatabaseManager::getAllDevices() {
     QMap<QString, QStringList> deviceRoomMap;
 
-    QSqlQuery query(
-        "SELECT device_types.type AS device_type, rooms.name AS room_name "
-        "FROM devices "
-        "LEFT JOIN rooms ON devices.room_id = rooms.id "
-        "LEFT JOIN device_types ON devices.device_type_id = device_types.id"
-        );
+    QString sqlQuery = R"(
+        SELECT
+            device_types.type AS device_type,
+            rooms.name AS room_name
+        FROM devices
+        LEFT JOIN rooms ON devices.room_id = rooms.id
+        LEFT JOIN device_types ON devices.device_type_id = device_types.id
+    )";
 
-    if (query.exec()) {
-        while (query.next()) {
-            QString deviceType = query.value("device_type").toString();
-            QString roomName = query.value("room_name").toString();
+    QSqlQuery query;
+    if (!query.exec(sqlQuery)) {
+        qDebug() << "Failed to execute query: " << sqlQuery;
+        qDebug() << "Error: " << query.lastError().text();
+        return deviceRoomMap;
+    }
 
-            if (!deviceRoomMap.contains(deviceType)) {
-                deviceRoomMap[deviceType] = QStringList();
-            }
+    while (query.next()) {
+        QString deviceType = query.value(0).toString();
+        QString roomName = query.value(1).toString();
 
-            if (!roomName.isEmpty()) {
-                deviceRoomMap[deviceType] << roomName;
-            }
+        if (!deviceRoomMap.contains(deviceType)) {
+            deviceRoomMap[deviceType] = QStringList();
         }
-    } else {
-        qDebug() << "Failed to retrieve all devices grouped by type: " << query.lastError().text();
+
+        if (!roomName.isEmpty()) {
+            deviceRoomMap[deviceType].append(roomName);
+        }
     }
 
     return deviceRoomMap;
 }
 
-
-
 QStringList DatabaseManager::getAllRooms() {
     QStringList rooms;
-    QSqlQuery query("SELECT name FROM rooms");
 
-    if (query.exec()) {
-        while (query.next()) {
-            rooms << query.value(0).toString();
-        }
-    } else {
-        qDebug() << "Failed to retrieve rooms: " << query.lastError().text();
+    QSqlQuery query;
+    QString sqlQuery = "SELECT name FROM rooms";
+
+    if (!query.exec(sqlQuery)) {
+        qDebug() << "Failed to execute query: " << sqlQuery;
+        qDebug() << "Error: " << query.lastError().text();
+        return rooms;
+    }
+
+    while (query.next()) {
+        rooms << query.value(0).toString();
     }
 
     return rooms;
 }
+
 QStringList DatabaseManager::getDevicesForRoom(const QString &roomName) {
     QStringList devices;
     QSqlQuery query;
@@ -328,15 +277,20 @@ QStringList DatabaseManager::getDevicesForRoom(const QString &roomName) {
 
 QStringList DatabaseManager::getAllScenarios() {
     QStringList scenarios;
-    QSqlQuery query("SELECT name FROM scenarios");
 
-    if (query.exec()) {
-        while (query.next()) {
-            scenarios << query.value(0).toString();
-        }
-    } else {
-        qDebug() << "Failed to retrieve scenarios: " << query.lastError().text();
+    QSqlQuery query;
+    QString sqlQuery = "SELECT name FROM scenarios";
+
+    if (!query.exec(sqlQuery)) {
+        qDebug() << "Failed to execute query: " << sqlQuery;
+        qDebug() << "Error: " << query.lastError().text();
+        return scenarios;
     }
+
+    while (query.next()) {
+        scenarios << query.value(0).toString();
+    }
+
     return scenarios;
 }
 
@@ -351,6 +305,7 @@ bool DatabaseManager::addScenario(const QString &scenario) {
     }
     return true;
 }
+
 QMap<QString, QStringList> DatabaseManager::getDevicesGroupedByType() {
     QMap<QString, QStringList> groupedDevices;
     QSqlQuery query("SELECT device_group, name FROM devices");

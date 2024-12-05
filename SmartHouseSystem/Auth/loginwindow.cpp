@@ -64,7 +64,9 @@ LoginWindow::LoginWindow(QWidget *parent)
                                "background-color: #c8a7ff; "
                                "border-radius: 15px;"
                                "padding: 10px;"
-                               "font:  bold 14px  'Oswald';"
+
+                               "font:  bold 14px  'New york';"
+
                                "}");
     errorLabel ->setStyleSheet("QLabel {"
                                 "background-color: rgb(191, 161, 249, 0); "

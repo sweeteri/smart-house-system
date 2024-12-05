@@ -37,7 +37,7 @@ target_include_directories(SmartHouseSystemServer PRIVATE
 target_link_libraries(SmartHouseSystemServer
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Network
-    Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::Sql pq
 )
 
 include(GNUInstallDirs)

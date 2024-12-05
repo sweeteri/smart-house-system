@@ -1,60 +1,3 @@
-# Build directories and files
-/build/*
-SmartHouseSystemServer/build/
-SmartHouseSystem/build/
-/CMakeFiles
-CMakeLists.txt.user
-/CMakeCache.txt
-/cmake_install.cmake
-Makefile
-*.ninja
-*.rules
-
-# Qt generated files
-*.pro.user
-*.autosave
-*.qrc
-*.moc
-*.obj
-*.o
-*.so
-*.dll
-*.dylib
-*.exe
-*.a
-*.lib
-
-# Generated code (moc, uic, etc.)
-moc_*.cpp
-ui_*.h
-qrc_*.cpp
-
-# Qt Creator-specific files
-*.pro.user.*
-*.creator*
-*.autosave
-
-# IDE-specific files
-.idea/
-.vscode/
-*.sln
-*.vcxproj
-*.xcworkspace
-*.xcuserstate
-
-# OS-specific files
-.DS_Store
-Thumbs.db
-
-# Log files
-*.log
-
-# Environment-specific settings
-.env
-*.key
-*.pem
-*.crt
-config.json
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -240,7 +183,3 @@ atlassian-ide-plugin.xml
 .vscode/
 
 cache/
-
-SmartHouseSystem/resources/
-test_db/
-
