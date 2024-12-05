@@ -182,13 +182,37 @@ void SmartHouseSystemServer::processLoadDevicesRequest(QTcpSocket *socket, const
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
-
+void SmartHouseSystemServer::determineDeviceGroup(const QString &deviceType,QString &deviceGroup, QJsonObject &parameters){
+    if (deviceType == "лампа"||deviceType == "шторы") {
+        deviceGroup = "освещение";
+        parameters["on"] = false;
+    } else if (deviceType == "кондиционер"||(deviceType == "обогреватель")||(deviceType == "тёплый пол")) {
+        deviceGroup = "отопление";
+        parameters["temperature"] = 22;
+        parameters["on"] = false;
+    }  else if (deviceType == "увлажнитель") {
+        deviceGroup = "отопление";
+        parameters["humidity"] = 50;
+        parameters["on"] = false;
+    } else if (deviceType == "кофемашина"||deviceType == "стиральная машина"||deviceType == "робот-пылесос"||deviceType == "колонка") {
+        deviceGroup = "бытовая техника";
+        parameters["on"] = false;
+    } else if (deviceType == "замок"||deviceType == "сигнализация") {
+        deviceGroup = "безопасность";
+        parameters["on"] = false;
+    } else {
+        qDebug() << "Unknown device type: " << deviceType;
+    }
+}
 void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const QJsonObject &request) {
     QString roomName = request["roomName"].toString();
     QString deviceType = request["deviceType"].toString();
 
     QString generatedDeviceName;
-    bool success = DatabaseManager::instance().addDevice(roomName, deviceType, generatedDeviceName);
+    QString deviceGroup;
+    QJsonObject parameters;
+    determineDeviceGroup(deviceType, deviceGroup, parameters);
+    bool success = DatabaseManager::instance().addDevice(roomName, deviceType, generatedDeviceName, deviceGroup, parameters);
 
     QJsonObject response;
     response["action"] = "addDevice";
@@ -200,16 +224,16 @@ void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const Q
 
         QJsonObject flaskRequest;
         flaskRequest["deviceName"] = generatedDeviceName;
-        flaskRequest["deviceType"] = deviceType;
+        flaskRequest["deviceGroup"] = deviceGroup;
         flaskRequest["roomName"] = roomName;
-        sendCreateContainerRequest(generatedDeviceName, deviceType, roomName);
+        sendCreateContainerRequest(generatedDeviceName, deviceGroup, roomName);
     }
 
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 
 }
-void SmartHouseSystemServer::sendCreateContainerRequest(const QString &deviceName, const QString &deviceType, const QString &roomName) {
+void SmartHouseSystemServer::sendCreateContainerRequest(const QString &deviceName, const QString &deviceGroup, const QString &roomName) {
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     QUrl url("http://flask_manager:5000/create_image");
 
@@ -218,7 +242,7 @@ void SmartHouseSystemServer::sendCreateContainerRequest(const QString &deviceNam
 
     QJsonObject json;
     json["device_name"] = deviceName;
-    json["device_type"] = deviceType;
+    json["device_group"] = deviceGroup;
     json["room_name"] = roomName;
 
 

@@ -120,7 +120,7 @@ bool DatabaseManager::addRoom(const QString &roomName) {
     return true;
 }
 
-bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceType, QString &generatedDeviceName) {
+bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceType, QString &generatedDeviceName, QString &deviceGroup, QJsonObject &parameters) {
     QSqlQuery query;
 
     query.prepare("SELECT id FROM rooms WHERE name = :name");
@@ -131,30 +131,7 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
     }
     int roomId = query.value(0).toInt();
 
-    QJsonObject parameters;
-    QString deviceGroup;
 
-    if (deviceType == "лампа"||deviceType == "шторы") {
-        deviceGroup = "освещение";
-        parameters["on"] = false;
-    } else if (deviceType == "кондиционер"||(deviceType == "обогреватель")||(deviceType == "тёплый пол")) {
-        deviceGroup = "отопление";
-        parameters["temperature"] = 22;
-        parameters["on"] = false;
-    }  else if (deviceType == "увлажнитель") {
-        deviceGroup = "отопление";
-        parameters["humidity"] = 50;
-        parameters["on"] = false;
-    } else if (deviceType == "кофемашина"||deviceType == "стиральная машина"||deviceType == "робот-пылесос"||deviceType == "колонка") {
-        deviceGroup = "бытовая техника";
-        parameters["on"] = false;
-    } else if (deviceType == "замок"||deviceType == "сигнализация") {
-        deviceGroup = "безопасность";
-        parameters["on"] = false;
-    } else {
-        qDebug() << "Unknown device type: " << deviceType;
-        return false;
-    }
 
     query.prepare("SELECT id FROM device_types WHERE type = :device_type");
     query.bindValue(":device_type", deviceType);

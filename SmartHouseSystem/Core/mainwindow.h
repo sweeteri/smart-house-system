@@ -40,10 +40,7 @@ private slots:
     void handleLoadScenariosResponse(const QJsonObject &response);
     void handleAddScenarioResponse(const QJsonObject &response);
     void handleLoadRoomDevicesResponse(const QJsonObject &response);
-<<<<<<< HEAD
     void handleToggleDeviceResponse(const QJsonObject &response);
-=======
->>>>>>> main
 
 private:
 
