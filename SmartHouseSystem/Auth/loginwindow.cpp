@@ -64,7 +64,9 @@ LoginWindow::LoginWindow(QWidget *parent)
                                "background-color: #c8a7ff; "
                                "border-radius: 15px;"
                                "padding: 10px;"
+
                                "font:  bold 14px  'New york';"
+
                                "}");
     errorLabel ->setStyleSheet("QLabel {"
                                 "background-color: rgb(191, 161, 249, 0); "
@@ -77,7 +79,7 @@ LoginWindow::LoginWindow(QWidget *parent)
                                   "background-color: #c8a7ff; "
                                   "border-radius: 15px;"
                                   "padding: 10px;"
-                                  "font: bold 14px  'New york';"
+                                  "font: bold 14px  'Oswald';"
                                   "}");
 }
 
@@ -126,7 +128,14 @@ void LoginWindow::handleLoginResponse(const QJsonObject &response) {
         qDebug() << "----IBUSKO---- LoginWindow::handleLoginRespons success";
         emit login_success(userRoleFromServer);
         this->hide();
-        QMessageBox::information(this, "Success", response["message"].toString());
+        QMessageBox msgBox;
+        msgBox.setText(response["message"].toString());
+        msgBox.setWindowTitle("Success");
+        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+        msgBox.exec();
+
     } else {
         errorLabel->setText(response["message"].toString());
     }
