@@ -328,10 +328,24 @@ void MainWindow::handleServerResponse(const QJsonObject &response)
         handleLoadScenariosResponse(response);
     }else if(action=="addScenario"){
         handleAddScenarioResponse(response);
-    }else if(action=="loadRoomDevices")
+    }else if(action=="loadRoomDevices"){
         handleLoadRoomDevicesResponse(response);
+    }else if (action == "toggleDevice") {
+        handleToggleDeviceResponse(response);
+    }
 }
+void MainWindow::handleToggleDeviceResponse(const QJsonObject &response)
+{
+    QString deviceName = response["deviceName"].toString();
+    bool success = response["success"].toBool();
+    QString message = response["message"].toString();
 
+    /*if (success) {
+        QMessageBox::information(this, "Устройство", "Устройство " + deviceName + " успешно обновлено.");
+    } else {
+        QMessageBox::warning(this, "Ошибка", "Не удалось обновить состояние устройства: " + message);
+    }*/
+}
 void MainWindow::handleLoadRoomsResponse(const QJsonObject &response) {
     QJsonArray roomsArray = response["rooms"].toArray();
 
@@ -394,7 +408,7 @@ void MainWindow::handleLoadRoomDevicesResponse(const QJsonObject &response) {
         for (const QJsonValue &deviceValue : devicesArray) {
             QString deviceName = deviceValue.toString();
             devices.push_back(deviceName);
-            displayItemsInGrid(devices, true);
+            displayItemsInGrid(devices, roomName, true);
         }
     }
 
@@ -464,12 +478,17 @@ void MainWindow::handleLoadScenariosResponse(const QJsonObject &response) {
     for (const QJsonValue &scenario : scenariosArray) {
         QString scenarioName = scenario.toString();
         scenarios.push_back(scenarioName);
-        displayItemsInGrid(scenarios, false);
+    //displayItemsInGrid(scenarios, false);
+
     }
 }
 
 
-void MainWindow::displayItemsInGrid(const QVector<QString> &items, bool isDevices)
+
+
+
+void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices)
+
 {
     clearGridLayout(gridLayout);
 
@@ -603,13 +622,19 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, bool isDevice
         }
         bool *isOff = new bool(true); // Используем динамическую память
 
-        connect(button, &QPushButton::clicked, this, [button, isOff]() {
-            if (*isOff) {
-                button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 25px;}");
-            } else {
-                button->setStyleSheet("QPushButton { background-color: #f9e2bd;""border-radius: 25px;}");
-            }
-            *isOff = !(*isOff); // Переключаем состояние
+
+        button->setCheckable(true);
+        button->setObjectName(item);
+        //button->setStyleSheet(buttonStyle);
+        addShadowEffect(button);
+        connect(button, &QPushButton::clicked, this, [this, button, item, roomName]() {
+            QJsonObject request;
+            request["action"] = "toggleDevice";
+            request["deviceName"] = item;
+            request["roomName"]=roomName;
+            request["state"] = button->isChecked(); // true (включить) или false (выключить)
+            button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 25px;" : "background-color: #f9e2bd;""border-radius: 25px;");
+            NetworkManager::instance().sendRequest(request);
         });
         gridLayout->addWidget(button, row, col);
         if (++col >= 3) {
@@ -655,14 +680,17 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
 
             addShadowEffect(button);
 
-            bool *isOff = new bool(true);
-            connect(button, &QPushButton::clicked, this, [button, isOff]() {
-                if (*isOff) {
-                    button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;");
-                } else {
-                    button->setStyleSheet("QPushButton { background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';}");
-                }
-                *isOff = !(*isOff); // Переключаем состояние
+
+            connect(button, &QPushButton::clicked, this, [this, button, item, roomTrimmed]() {
+                QJsonObject request;
+                request["action"] = "toggleDevice";
+                request["deviceName"] = item;
+                request["roomName"] = roomTrimmed;
+                qDebug() << "Device:" << item << ", Room:" << roomTrimmed;
+                request["state"] = button->isChecked(); // true (включить) или false (выключить)
+                button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;" : "background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';");
+                NetworkManager::instance().sendRequest(request);
+
             });
             gridLayout->addWidget(button, row, col);
 

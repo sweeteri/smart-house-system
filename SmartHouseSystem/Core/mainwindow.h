@@ -40,6 +40,10 @@ private slots:
     void handleLoadScenariosResponse(const QJsonObject &response);
     void handleAddScenarioResponse(const QJsonObject &response);
     void handleLoadRoomDevicesResponse(const QJsonObject &response);
+<<<<<<< HEAD
+    void handleToggleDeviceResponse(const QJsonObject &response);
+=======
+>>>>>>> main
 
 private:
 
@@ -65,7 +69,7 @@ private:
 
     void initUI();
     void configureUIBasedOnRole();
-    void displayItemsInGrid(const QVector<QString> &items, bool isDevices);
+    void displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices);
     void displayAllDevicesInGrid(const QVector<QString> &items);
     void clearGridLayout(QLayout *layout);
     void clearDisplay();
