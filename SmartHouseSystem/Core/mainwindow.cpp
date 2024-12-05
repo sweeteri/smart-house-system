@@ -387,9 +387,13 @@ void MainWindow::handleLoadScenariosResponse(const QJsonObject &response) {
 }
 
 
+<<<<<<< HEAD
 
 
 void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices)
+=======
+void MainWindow::displayItemsInGrid(const QVector<QString> &items, bool isDevices)
+>>>>>>> main
 {
     clearGridLayout(gridLayout);
 
@@ -411,6 +415,118 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             QSize iconSize(90, 90);
             button->setIconSize(iconSize);
             button->setText("");
+<<<<<<< HEAD
+        }
+        if (item == "кондиционер") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/conditioner.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "обогреватель") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/heater.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "тёплый пол") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/floor.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "увлажнитель") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/humidifier.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "колонка") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/column.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "замок") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/lock.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "кофемашина") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/coffee.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "сигнализация") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/sirena.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "робот-пылесос") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/robot.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "шторы") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/curtains.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "стиральная машина") {
+            button->setFixedSize(170, 150);
+            button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
+            addShadowEffect(button);
+            button->setIcon(QIcon("/home/aleksandra/Desktop/MAIN_PROJECT/smart-house-system/images/washing.png"));
+            QSize iconSize(70, 70);
+            button->setIconSize(iconSize);
+            button->setText("");
+        }
+        if (item == "Наступила ночь" || item == "Наступило утро" || item == "Похолодало") {
+            button->setMinimumSize(200, 50);
+            button->setStyleSheet("QPushButton {"
+                               "background-color: #b3a2ee; "
+                               "border-radius: 20px;"
+                               "padding: 15px;"
+                               "font: bold 14px  'New york';"
+                               "}");
+            button->setText(item);
+=======
+>>>>>>> main
         }
         if (item == "кондиционер") {
             button->setFixedSize(170, 150);
@@ -521,7 +637,9 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
                                "}");
             button->setText(item);
         }
+        bool *isOff = new bool(true); // Используем динамическую память
 
+<<<<<<< HEAD
 
 
         button->setCheckable(true);
@@ -536,6 +654,15 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             request["state"] = button->isChecked(); // true (включить) или false (выключить)
             button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 25px;" : "background-color: #f9e2bd;""border-radius: 25px;");
             NetworkManager::instance().sendRequest(request);
+=======
+        connect(button, &QPushButton::clicked, this, [button, isOff]() {
+            if (*isOff) {
+                button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 25px;}");
+            } else {
+                button->setStyleSheet("QPushButton { background-color: #f9e2bd;""border-radius: 25px;}");
+            }
+            *isOff = !(*isOff); // Переключаем состояние
+>>>>>>> main
         });
         gridLayout->addWidget(button, row, col);
         if (++col >= 3) {
@@ -581,6 +708,7 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
 
             addShadowEffect(button);
 
+<<<<<<< HEAD
             connect(button, &QPushButton::clicked, this, [this, button, item, roomTrimmed]() {
                 QJsonObject request;
                 request["action"] = "toggleDevice";
@@ -590,6 +718,16 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
                 request["state"] = button->isChecked(); // true (включить) или false (выключить)
                 button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;" : "background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';");
                 NetworkManager::instance().sendRequest(request);
+=======
+            bool *isOff = new bool(true);
+            connect(button, &QPushButton::clicked, this, [button, isOff]() {
+                if (*isOff) {
+                    button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;");
+                } else {
+                    button->setStyleSheet("QPushButton { background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';}");
+                }
+                *isOff = !(*isOff); // Переключаем состояние
+>>>>>>> main
             });
             gridLayout->addWidget(button, row, col);
 
