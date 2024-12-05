@@ -39,10 +39,7 @@ private slots:
     void handleLoadScenariosResponse(const QJsonObject &response);
     void handleAddScenarioResponse(const QJsonObject &response);
     void handleLoadRoomDevicesResponse(const QJsonObject &response);
-<<<<<<< Updated upstream
-=======
     void handleToggleDeviceResponse(const QJsonObject &response);
->>>>>>> Stashed changes
 
 private:
 

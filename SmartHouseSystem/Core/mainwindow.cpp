@@ -387,12 +387,9 @@ void MainWindow::handleLoadScenariosResponse(const QJsonObject &response) {
 }
 
 
-<<<<<<< Updated upstream
-void MainWindow::displayItemsInGrid(const QVector<QString> &items, bool isDevices)
-=======
+
 
 void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices)
->>>>>>> Stashed changes
 {
     clearGridLayout(gridLayout);
 
@@ -524,38 +521,12 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
                                "}");
             button->setText(item);
         }
-        bool *isOff = new bool(true); // Используем динамическую память
 
-<<<<<<< Updated upstream
-        connect(button, &QPushButton::clicked, this, [button, isOff]() {
-            if (*isOff) {
-                button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 25px;}");
-            } else {
-                button->setStyleSheet("QPushButton { background-color: #f9e2bd;""border-radius: 25px;}");
-            }
-            *isOff = !(*isOff); // Переключаем состояние
-=======
+
+
         button->setCheckable(true);
-        QString buttonStyle = "QPushButton {"
-                              "background-color: #b3a2ee;"
-                              "border-radius: 25px;"
-                              "padding: 10px;"
-                              "font: bold 16px 'New York';"
-                              "}"
-                              "QPushButton:hover {"
-                              "background-color: #ffbaf5;"
-                              "}";
-        QString buttonStyleChecked = "QPushButton {"
-                              "background-color: #b3a2ee;"
-                              "border-radius: 25px;"
-                              "padding: 10px;"
-                              "font: bold 16px 'New York';"
-                              "}"
-                              "QPushButton:hover {"
-                              "background-color: #ffccc1;"
-                              "}";
         button->setObjectName(item);
-        button->setStyleSheet(buttonStyle);
+        //button->setStyleSheet(buttonStyle);
         addShadowEffect(button);
         connect(button, &QPushButton::clicked, this, [this, button, item, roomName]() {
             QJsonObject request;
@@ -563,10 +534,8 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             request["deviceName"] = item;
             request["roomName"]=roomName;
             request["state"] = button->isChecked(); // true (включить) или false (выключить)
-            button->setStyleSheet(button->isChecked() ? "background-color: #ffbaf5;" : "background-color: #ffccc1;");
-
+            button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 25px;" : "background-color: #f9e2bd;""border-radius: 25px;");
             NetworkManager::instance().sendRequest(request);
->>>>>>> Stashed changes
         });
         gridLayout->addWidget(button, row, col);
         if (++col >= 3) {
@@ -611,17 +580,7 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
             button->setStyleSheet(buttonStyle);
 
             addShadowEffect(button);
-<<<<<<< Updated upstream
 
-            bool *isOff = new bool(true);
-            connect(button, &QPushButton::clicked, this, [button, isOff]() {
-                if (*isOff) {
-                    button->setStyleSheet("QPushButton { background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;");
-                } else {
-                    button->setStyleSheet("QPushButton { background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';}");
-                }
-                *isOff = !(*isOff); // Переключаем состояние
-=======
             connect(button, &QPushButton::clicked, this, [this, button, item, roomTrimmed]() {
                 QJsonObject request;
                 request["action"] = "toggleDevice";
@@ -629,10 +588,8 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
                 request["roomName"] = roomTrimmed;
                 qDebug() << "Device:" << item << ", Room:" << roomTrimmed;
                 request["state"] = button->isChecked(); // true (включить) или false (выключить)
-                button->setStyleSheet(button->isChecked() ? "background-color: green;" : "background-color: red;");
-
+                button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;" : "background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';");
                 NetworkManager::instance().sendRequest(request);
->>>>>>> Stashed changes
             });
             gridLayout->addWidget(button, row, col);
 
