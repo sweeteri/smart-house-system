@@ -13,7 +13,7 @@ public:
 
     bool openConnection();
     QSqlDatabase getDatabase();
-    void initializeDatabase();
+    void initializeDatabaseFromScript(const QString &scriptPath);
 
     bool registerUser(const QString &username, const QString &password, const QString &role);
     bool authenticateUser(const QString &username, const QString &password);
