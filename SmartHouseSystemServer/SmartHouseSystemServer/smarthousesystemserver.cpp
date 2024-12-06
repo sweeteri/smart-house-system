@@ -53,6 +53,8 @@ SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
                     processToggleDeviceRequest(socket, request);
                 }else if (action=="loadScenarioDevices"){
                     processLoadScenarioDevicesRequest(socket, request);
+                }else if (action=="toggleScenario"){
+                    processToggleScenarioRequest(socket, request);
                 }
 
             }
@@ -305,6 +307,48 @@ void SmartHouseSystemServer::processToggleDeviceRequest(QTcpSocket *socket, cons
     socket->flush();
 }
 
+void SmartHouseSystemServer::toggleScenario(const QString &scenarioName, bool state, QJsonArray devices) {
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    QUrl url("http://flask_manager:5000/toggle_scenario");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QJsonObject json;
+    json["scenario_name"] = scenarioName;
+    json["action"] = state ? "activate" : "deactivate";
+    json["devices"] = devices;
+
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson();
+    qDebug() << "Sending request to Flask:" << data;
+    QNetworkReply *reply = networkManager->post(request, data);
+    connect(reply, &QNetworkReply::finished, [reply, scenarioName, state, devices]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            qDebug() << (state ? "Scenario activated:" : "Scenario deactivated:") << reply->readAll();
+        } else {
+            qDebug() << "Failed to toggle scenario state:" << reply->errorString();
+        }
+        reply->deleteLater();
+    });
+}
+void SmartHouseSystemServer::processToggleScenarioRequest(QTcpSocket *socket, const QJsonObject &request) {
+    QString scenarioName = request["scenarioName"].toString();
+    bool state = request["state"].toBool();
+    QJsonArray devices = DatabaseManager::instance().getDevicesByScenario(scenarioName);
+
+    QJsonObject response;
+    response["action"] = "toggleScenario";
+    response["scenarioName"] = scenarioName;
+    response["devices"] = devices;
+
+    toggleScenario(scenarioName, state, devices);
+
+    response["success"] = true;
+    response["message"] = state ? "Scenario activated successfully." : "Scenario deactivated successfully.";
+
+    socket->write(QJsonDocument(response).toJson());
+    socket->flush();
+}
 
 
 void SmartHouseSystemServer::processLoadScenariosRequest(QTcpSocket *socket, const QJsonObject &request) {

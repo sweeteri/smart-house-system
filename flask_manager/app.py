@@ -167,6 +167,73 @@ def device_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/toggle_scenario', methods=['POST'])
+def toggle_scenario():
+    data = request.json
+    scenario_name = data.get("scenario_name")
+    devices = data.get("devices")
+    action = data.get("action")
+
+    if not scenario_name or not devices or action not in ["activate", "deactivate"]:
+        return jsonify({"success": False, "message": "Invalid parameters"}), 400
+
+    results = []
+    for device in devices:
+        try:
+            room_name, device_name = device.split(": ")
+            sanitized_name = f"device_{sanitize_name(room_name)}_{sanitize_name(device_name)}"
+
+            container = client.containers.get(sanitized_name)
+
+            if action == "activate":
+                if container.status != "running":
+                    container.start()
+                    results.append({
+                        "device": device,
+                        "success": True,
+                        "message": "Device started successfully"
+                    })
+                else:
+                    results.append({
+                        "device": device,
+                        "success": False,
+                        "message": "Device is already running"
+                    })
+            elif action == "deactivate":
+                if container.status == "running":
+                    container.stop()
+                    results.append({
+                        "device": device,
+                        "success": True,
+                        "message": "Device stopped successfully"
+                    })
+                else:
+                    results.append({
+                        "device": device,
+                        "success": False,
+                        "message": "Device is not running"
+                    })
+
+        except docker.errors.NotFound:
+            results.append({
+                "device": device,
+                "success": False,
+                "message": "Container not found"
+            })
+        except Exception as e:
+            results.append({
+                "device": device,
+                "success": False,
+                "message": f"Error: {str(e)}"
+            })
+
+    all_success = all(r["success"] for r in results)
+    return jsonify({
+        "success": all_success,
+        "message": f"Scenario {action}d {'successfully' if all_success else 'with some errors'}",
+        "details": results
+    })
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

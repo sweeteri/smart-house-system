@@ -48,5 +48,6 @@ CREATE TABLE IF NOT EXISTS sensor_events (
 CREATE TABLE IF NOT EXISTS scenarios (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,       
-    devices JSON NOT NULL            
+    devices JSON NOT NULL,
+    is_active BOOLEAN DEFAULT FALSE           
 );

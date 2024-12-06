@@ -236,10 +236,6 @@ void MainWindow::onScenarioButtonClicked() {
     QJsonObject request;
     request["action"] = "loadScenarios";
     NetworkManager::instance().sendRequest(request);
-
-    /*QJsonObject deviceRequest;
-    deviceRequest["action"] = "loadScenarioDevices";
-    NetworkManager::instance().sendRequest(deviceRequest);*/
 }
 void MainWindow::onAddScenarioButtonClicked() {
     QDialog *scenarioDialog = new QDialog(this);
@@ -541,6 +537,18 @@ void MainWindow::displayScenariosInGrid(QVector<QString> &scenarios){
                               "font: bold 14px  'New york';"
                               "}");
         button->setText(scenario);
+        button->setCheckable(true);
+        button->setObjectName(scenario);
+        //button->setStyleSheet(buttonStyle);
+        addShadowEffect(button);
+        connect(button, &QPushButton::clicked, this, [this, button, scenario]() {
+            QJsonObject request;
+            request["action"] = "toggleScenario";
+            request["scenarioName"] = scenario;
+            request["state"] = button->isChecked(); // true (включить) или false (выключить)
+            button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 25px;" : "background-color: #f9e2bd;""border-radius: 25px;");
+            NetworkManager::instance().sendRequest(request);
+        });
         gridLayout->addWidget(button, row, col);
         if (++col >= 3) {
             col = 0;

@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QProcessEnvironment>
+#include <QJsonArray>
 
 DatabaseManager::DatabaseManager() {
 
@@ -271,8 +272,6 @@ QStringList DatabaseManager::getAllScenarios() {
     return scenarios;
 }
 bool DatabaseManager::addScenario(const QString &name, const QJsonArray &devices) {
-
-
     QSqlQuery query(db);
     QString devicesJson = QString::fromUtf8(QJsonDocument(devices).toJson(QJsonDocument::Compact));
     query.prepare("INSERT INTO scenarios (name, devices) VALUES (:name, :devices)");
@@ -283,10 +282,32 @@ bool DatabaseManager::addScenario(const QString &name, const QJsonArray &devices
         qDebug() << "Failed to insert scenario:" << query.lastError();
         return false;
     }
-
     return true;
 }
 
+QJsonArray DatabaseManager::getDevicesByScenario(const QString &scenarioName) {
+    QSqlDatabase db = QSqlDatabase::database();
+    QSqlQuery query(db);
+    query.prepare("SELECT devices FROM scenarios WHERE name = :scenarioName");
+    query.bindValue(":scenarioName", scenarioName);
+
+    if (!query.exec()) {
+        qDebug() << "Failed to fetch devices for scenario:" << query.lastError();
+        return QJsonArray(); // Возвращаем пустой массив, если запрос не удался
+    }
+
+    if (query.next()) {
+        QString devicesJson = query.value(0).toString();
+        QJsonDocument doc = QJsonDocument::fromJson(devicesJson.toUtf8());
+        if (!doc.isNull() && doc.isArray()) {
+            return doc.array(); // Возвращаем массив устройств
+        } else {
+            qDebug() << "Failed to parse devices JSON:" << devicesJson;
+        }
+    }
+
+    return QJsonArray(); // Возвращаем пустой массив, если сценарий не найден
+}
 
 
 QMap<QString, QStringList> DatabaseManager::getDevicesGroupedByType() {
