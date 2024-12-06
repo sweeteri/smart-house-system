@@ -1,9 +1,22 @@
+import threading
+import random
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 state = "off"
 temperature = 22
+
+def simulate_temperature_change():
+    global temperature
+    while True:
+        if state == "on":
+            temperature += random.choice([-1, 0, 1])
+            temperature = max(15, min(30, temperature))
+        threading.Event().wait(10)
+
+# Фоновой поток
+threading.Thread(target=simulate_temperature_change, daemon=True).start()
 
 @app.route('/status', methods=['GET'])
 def status():
@@ -25,7 +38,7 @@ def toggle():
 def set_temperature():
     global temperature
     temp = request.json.get('temperature')
-    if temp < 15 or temp > 30:
+    if temp is None or not (15 <= temp <= 30):
         return jsonify({"error": "Temperature out of range"}), 400
     temperature = temp
     return jsonify({"device_name": "{device_name}", "temperature": temperature})
