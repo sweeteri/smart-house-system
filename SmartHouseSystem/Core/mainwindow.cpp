@@ -188,6 +188,7 @@ void MainWindow::onAllDevicesButtonClicked()
 }
 
 
+
 void MainWindow::onAddRoomButtonClicked()
 {
     QStringList predefinedRooms = {"Баня", "Подвал", "Ванная", "Гостиная", "Детская", "Гараж", "Сауна", "Кухня", "Чердак"};
@@ -235,86 +236,86 @@ void MainWindow::onScenarioButtonClicked() {
     QJsonObject request;
     request["action"] = "loadScenarios";
     NetworkManager::instance().sendRequest(request);
+
+    QJsonObject deviceRequest;
+    deviceRequest["action"] = "loadScenarioDevices";
+    NetworkManager::instance().sendRequest(deviceRequest);
 }
-void MainWindow::onAddScenarioButtonClicked(){
-    // Создаем диалоговое окно для редактирования сценария
+void MainWindow::onAddScenarioButtonClicked() {
     QDialog *scenarioDialog = new QDialog(this);
     scenarioDialog->setWindowTitle("Создание сценария");
     scenarioDialog->resize(600, 400);
 
     QVBoxLayout *dialogLayout = new QVBoxLayout(scenarioDialog);
 
-    // Список для выбора устройств
     QListWidget *availableDevices = new QListWidget(scenarioDialog);
-    availableDevices->addItems({"Устройство 1", "Устройство 2", "Устройство 3", "Устройство 4"});
     availableDevices->setSelectionMode(QAbstractItemView::SingleSelection);
     availableDevices->setDragEnabled(true);
 
-    // Поле для выбора устройств в сценарии
     QListWidget *scenarioField = new QListWidget(scenarioDialog);
     scenarioField->setAcceptDrops(true);
     scenarioField->setDragDropMode(QAbstractItemView::DropOnly);
 
-    // Расположение списков
-    QHBoxLayout *listsLayout = new QHBoxLayout();
     QVBoxLayout *availableLayout = new QVBoxLayout();
-    QVBoxLayout *scenarioLayout = new QVBoxLayout();
-
     availableLayout->addWidget(new QLabel("Доступные устройства:"));
     availableLayout->addWidget(availableDevices);
 
+    QVBoxLayout *scenarioLayout = new QVBoxLayout();
     scenarioLayout->addWidget(new QLabel("Поле сценария:"));
     scenarioLayout->addWidget(scenarioField);
 
+    QHBoxLayout *listsLayout = new QHBoxLayout();
     listsLayout->addLayout(availableLayout);
     listsLayout->addLayout(scenarioLayout);
 
     dialogLayout->addLayout(listsLayout);
 
-    // Кнопки управления
     QPushButton *saveButton = new QPushButton("Сохранить", scenarioDialog);
     QPushButton *cancelButton = new QPushButton("Отмена", scenarioDialog);
-    QHBoxLayout *buttonsLayout = new QHBoxLayout();
 
+    QHBoxLayout *buttonsLayout = new QHBoxLayout();
     buttonsLayout->addStretch();
     buttonsLayout->addWidget(saveButton);
     buttonsLayout->addWidget(cancelButton);
 
     dialogLayout->addLayout(buttonsLayout);
 
-    // Обработка нажатия кнопок
-    connect(saveButton, &QPushButton::clicked, this, [this, scenarioField, availableDevices, scenarioDialog]() {
-        QStringList scenarioDevices;
-        for (int i = 0; i < scenarioField->count(); ++i) {
-            scenarioDevices << scenarioField->item(i)->text();
-        }
+    QJsonObject request;
+    request["action"] = "loadScenarioDevices";
+    NetworkManager::instance().sendRequest(request);
 
-        if (scenarioDevices.isEmpty()) {
-            QMessageBox::information(this, "Ошибка", "Сценарий не может быть пустым.");
-            return;
-        }
+    connect(&NetworkManager::instance(), &NetworkManager::responseReceived, this, [availableDevices](const QJsonObject &response) {
+        qDebug() << "Response received:" << response;
 
-        // Получаем имя сценария с помощью диалога
-        QString selectedScenario = QInputDialog::getText(this, "Добавить сценарий", "Введите имя сценария:");
+        if (response["action"].toString() == "loadScenarioDevices") {
+            QJsonArray devicesArray = response["devices"].toArray();
+            for (const QJsonValue &value : devicesArray) {
+                QJsonObject deviceObject = value.toObject();
+                QString type = deviceObject["type"].toString();
+                QJsonArray roomsArray = deviceObject["rooms"].toArray();
 
-        if (!selectedScenario.isEmpty()) {
-            QJsonObject request;
-            request["action"] = "addScenario";
-            request["scenarioName"] = selectedScenario;
-            NetworkManager::instance().sendRequest(request);
+                for (const QJsonValue &room : roomsArray) {
+                    QString roomName = room.toString();
+                    QString itemText = QString("%1: %2").arg(roomName).arg(type);
+                    qDebug() << "Adding item:" << itemText;
+                    availableDevices->addItem(itemText);
+                }
+            }
         } else {
-            QMessageBox::information(this, "Информация", "Добавление сценария отменено.");
+            qDebug() << "Unexpected action in response.";
         }
-
-        // Закрытие диалога после сохранения
-        scenarioDialog->accept();
     });
 
     connect(cancelButton, &QPushButton::clicked, scenarioDialog, &QDialog::reject);
 
-    // Открываем диалог
     scenarioDialog->exec();
 }
+
+
+
+
+
+
 
 
 void MainWindow::handleServerResponse(const QJsonObject &response)
@@ -338,7 +339,10 @@ void MainWindow::handleServerResponse(const QJsonObject &response)
         handleLoadRoomDevicesResponse(response);
     }else if (action == "toggleDevice") {
         handleToggleDeviceResponse(response);
+    }else if (action == "loadAllDevicesForScenarios") {
+        handleLoadAllDevicesForScenarios(response);
     }
+
 }
 void MainWindow::handleToggleDeviceResponse(const QJsonObject &response)
 {
@@ -351,6 +355,17 @@ void MainWindow::handleToggleDeviceResponse(const QJsonObject &response)
     } else {
         QMessageBox::warning(this, "Ошибка", "Не удалось обновить состояние устройства: " + message);
     }*/
+}
+void MainWindow::handleLoadAllDevicesForScenarios(const QJsonObject &response) {
+    QJsonArray devicesArray = response["devices"].toArray();
+    QVector<QString> devices;
+
+    for (const QJsonValue &value : devicesArray) {
+        QString device = value.toString();
+        devices.append(device);
+    }
+
+    emit devicesLoaded(devices);
 }
 void MainWindow::handleLoadRoomsResponse(const QJsonObject &response) {
     QJsonArray roomsArray = response["rooms"].toArray();

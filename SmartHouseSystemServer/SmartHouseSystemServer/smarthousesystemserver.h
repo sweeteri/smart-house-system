@@ -26,6 +26,7 @@ private slots:
     void processRoomDevicesRequest(QTcpSocket *socket, const QJsonObject &request);
 
     void processAddScenarioRequest(QTcpSocket *socket, const QJsonObject &request);
+    void processLoadScenarioDevicesRequest(QTcpSocket *socket, const QJsonObject &request);
     void processAddDeviceRequest(QTcpSocket *socket, const QJsonObject &request);
     void processToggleDeviceRequest(QTcpSocket *socket, const QJsonObject &request);
 

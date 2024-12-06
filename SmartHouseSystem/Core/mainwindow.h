@@ -22,6 +22,7 @@ public:
 
 signals:
     void backToMain();
+    void devicesLoaded(const QVector<QString> &devices);
 
 private slots:
     void onNoticeButtonClicked();
@@ -31,7 +32,7 @@ private slots:
     void onScenarioButtonClicked();
     void onAddScenarioButtonClicked();
     void requestRoomDevices(const QString &roomName);
-
+    void handleLoadAllDevicesForScenarios(const QJsonObject &response);
     void handleServerResponse(const QJsonObject &response);
     void handleLoadRoomsResponse(const QJsonObject &response);
     void handleLoadAllDevicesResponse(const QJsonObject &response);
