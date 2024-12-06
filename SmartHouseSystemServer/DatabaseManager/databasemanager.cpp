@@ -270,18 +270,24 @@ QStringList DatabaseManager::getAllScenarios() {
 
     return scenarios;
 }
+bool DatabaseManager::addScenario(const QString &name, const QJsonArray &devices) {
 
-bool DatabaseManager::addScenario(const QString &scenario) {
-    QSqlQuery query;
-    query.prepare("INSERT INTO scenarios (name) VALUES (:name)");
-    query.bindValue(":name", scenario);
+
+    QSqlQuery query(db);
+    QString devicesJson = QString::fromUtf8(QJsonDocument(devices).toJson(QJsonDocument::Compact));
+    query.prepare("INSERT INTO scenarios (name, devices) VALUES (:name, :devices)");
+    query.bindValue(":name", name);
+    query.bindValue(":devices", devicesJson);
 
     if (!query.exec()) {
-        qDebug() << "Failed to add scenario: " << query.lastError().text();
+        qDebug() << "Failed to insert scenario:" << query.lastError();
         return false;
     }
+
     return true;
 }
+
+
 
 QMap<QString, QStringList> DatabaseManager::getDevicesGroupedByType() {
     QMap<QString, QStringList> groupedDevices;

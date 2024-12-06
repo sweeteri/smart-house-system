@@ -31,6 +31,7 @@ public:
     QStringList getAllScenarios();
     QStringList getDevicesForRoom(const QString &roomName);
     QMap<QString, QStringList> getDevicesGroupedByType();
+    bool addScenario(const QString &name, const QJsonArray &devices);
 
 private:
     DatabaseManager();

@@ -68,6 +68,7 @@ private:
     void initUI();
     void configureUIBasedOnRole();
     void displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices);
+    void displayScenariosInGrid(QVector<QString> &scenarios);
     void displayAllDevicesInGrid(const QVector<QString> &items);
     void clearGridLayout(QLayout *layout);
     void clearDisplay();

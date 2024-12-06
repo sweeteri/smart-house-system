@@ -319,15 +319,26 @@ void SmartHouseSystemServer::processLoadScenariosRequest(QTcpSocket *socket, con
 
 void SmartHouseSystemServer::processAddScenarioRequest(QTcpSocket *socket, const QJsonObject &request) {
     QString scenarioName = request["scenarioName"].toString();
-    bool success = DatabaseManager::instance().addScenario(scenarioName);
+    QJsonArray devicesArray = request["devices"].toArray();
+    bool success = DatabaseManager::instance().addScenario(scenarioName, devicesArray);
 
     QJsonObject response;
+
+    if (!success) {
+        response["action"] = "addScenario";
+        response["success"] = false;
+        response["message"] = "Failed to create scenario.";
+        socket->write(QJsonDocument(response).toJson());
+        socket->flush();
+        return;
+    }
     response["action"] = "addScenario";
-    response["success"] = success;
-    response["message"] = success ? "Scenario added successfully." : "Failed to add scenario.";
+    response["success"] = true;
+    response["message"] = "Scenario added successfully.";
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
+
 void SmartHouseSystemServer::processLoadScenarioDevicesRequest(QTcpSocket *socket, const QJsonObject &request){
     QMap<QString, QStringList> devices = DatabaseManager::instance().getAllDevices();
     QJsonObject response;

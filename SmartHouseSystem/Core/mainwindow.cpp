@@ -237,9 +237,9 @@ void MainWindow::onScenarioButtonClicked() {
     request["action"] = "loadScenarios";
     NetworkManager::instance().sendRequest(request);
 
-    QJsonObject deviceRequest;
+    /*QJsonObject deviceRequest;
     deviceRequest["action"] = "loadScenarioDevices";
-    NetworkManager::instance().sendRequest(deviceRequest);
+    NetworkManager::instance().sendRequest(deviceRequest);*/
 }
 void MainWindow::onAddScenarioButtonClicked() {
     QDialog *scenarioDialog = new QDialog(this);
@@ -305,18 +305,44 @@ void MainWindow::onAddScenarioButtonClicked() {
             qDebug() << "Unexpected action in response.";
         }
     });
+    connect(saveButton, &QPushButton::clicked, this, [this, scenarioField, scenarioDialog]() {
+        QStringList scenarioDevices;
+        for (int i = 0; i < scenarioField->count(); ++i) {
+            scenarioDevices << scenarioField->item(i)->text();
+        }
+
+        if (scenarioDevices.isEmpty()) {
+            QMessageBox::warning(this, "Ошибка", "Сценарий не может быть пустым.");
+            return;
+        }
+
+        QString scenarioName = QInputDialog::getText(this, "Добавить сценарий", "Введите имя сценария:");
+        if (scenarioName.isEmpty()) {
+            QMessageBox::warning(this, "Ошибка", "Имя сценария не может быть пустым.");
+            return;
+        }
+
+        // Формируем запрос на сохранение сценария
+        QJsonObject request;
+        request["action"] = "addScenario";
+        request["scenarioName"] = scenarioName;
+
+        QJsonArray devicesArray;
+        for (const QString &device : scenarioDevices) {
+            devicesArray.append(device);
+        }
+        request["devices"] = devicesArray;
+
+        NetworkManager::instance().sendRequest(request);
+
+        QMessageBox::information(this, "Информация", "Сценарий успешно сохранен!");
+        scenarioDialog->accept();
+    });
 
     connect(cancelButton, &QPushButton::clicked, scenarioDialog, &QDialog::reject);
 
     scenarioDialog->exec();
 }
-
-
-
-
-
-
-
 
 void MainWindow::handleServerResponse(const QJsonObject &response)
 {
@@ -499,15 +525,30 @@ void MainWindow::handleLoadScenariosResponse(const QJsonObject &response) {
     for (const QJsonValue &scenario : scenariosArray) {
         QString scenarioName = scenario.toString();
         scenarios.push_back(scenarioName);
-    //displayItemsInGrid(scenarios, false);
-
     }
+    displayScenariosInGrid(scenarios);
 }
+void MainWindow::displayScenariosInGrid(QVector<QString> &scenarios){
+    clearGridLayout(gridLayout);
+    int row = 0, col = 0;
+    for (const QString &scenario : scenarios) {
+        QPushButton *button = new QPushButton(this);
+        button->setMinimumSize(200, 50);
+        button->setStyleSheet("QPushButton {"
+                              "background-color: #b3a2ee; "
+                              "border-radius: 20px;"
+                              "padding: 15px;"
+                              "font: bold 14px  'New york';"
+                              "}");
+        button->setText(scenario);
+        gridLayout->addWidget(button, row, col);
+        if (++col >= 3) {
+            col = 0;
+            ++row;
+        }
+    }
 
-
-
-
-
+}
 void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices)
 
 {
