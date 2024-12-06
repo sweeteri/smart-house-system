@@ -108,12 +108,27 @@ void RegistrationWindow::onRegisterClicked()
     QString role = roleComboBox->currentText();
 
     if (username.isEmpty() || password.isEmpty()) {
-        QMessageBox::warning(this, "Ошибка", "Имя пользователя и пароль не могут быть пустыми!");
+        //QMessageBox::warning(this, "Ошибка", "Имя пользователя и пароль не могут быть пустыми!");
+        QMessageBox msgBox;
+        msgBox.setText("Имя пользователя и пароль не могут быть пустыми!");
+        msgBox.setWindowTitle("Ошибка");
+        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+        msgBox.exec();
         return;
     }
 
     if (password != confirmPassword) {
-        QMessageBox::warning(this, "Ошибка", "Пароли не совпадают!");
+        //QMessageBox::warning(this, "Ошибка", "Пароли не совпадают!");
+        QMessageBox msgBox;
+        msgBox.setText("Пароли не совпадают!");
+        msgBox.setWindowTitle("Ошибка");
+        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+        msgBox.exec();
+        return;
         return;
     }
     QByteArray passwordHash = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256);
@@ -131,11 +146,25 @@ void RegistrationWindow::onRegisterClicked()
 
 void RegistrationWindow::handleRegistrationResponse(const QJsonObject &response) {
     if (response["success"].toBool()) {
-        QMessageBox::information(this, "Регистрация", response["message"].toString());
+        //QMessageBox::information(this, "Регистрация", response["message"].toString());
+        QMessageBox msgBox;
+        msgBox.setText(response["message"].toString());
+        msgBox.setWindowTitle("Регистрация");
+        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+        msgBox.exec();
         emit registrationSuccess();
         this->close();
     } else {
-        QMessageBox::critical(this, "Ошибка", response["message"].toString());
+        //QMessageBox::critical(this, "Ошибка", response["message"].toString());
+        QMessageBox msgBox;
+        msgBox.setText(response["message"].toString());
+        msgBox.setWindowTitle("Ошибка");
+        msgBox.setStyleSheet("QMessageBox { background-color: #e7c9ef; }"
+                             "QPushButton { background-color: #b3a2ee;""border-radius: 5px; }"
+                             "QPushButton:hover { background-color: rgb(114, 7, 168, 40); }");
+        msgBox.exec();
     }
 }
 

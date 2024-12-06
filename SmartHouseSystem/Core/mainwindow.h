@@ -43,6 +43,7 @@ private slots:
     void handleLoadRoomDevicesResponse(const QJsonObject &response);
     void handleToggleDeviceResponse(const QJsonObject &response);
 
+
 private:
 
     QPushButton *logoutButton;
