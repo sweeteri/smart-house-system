@@ -6,25 +6,35 @@ import os
 import shutil
 import logging
 
-# Настройка логирования
-logging.basicConfig(level=logging.DEBUG)
 
+logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 client = docker.from_env()
-
 
 def sanitize_name(name):
     sanitized = unidecode.unidecode(name)
     sanitized = re.sub(r'[^a-zA-Z0-9_-]', '_', sanitized)
     return sanitized.lower()
 
-
+def select_template(device_type, device_name):
+    templates = {
+        "on_off_devices": "templates/lighting_template.py",
+        "on_off_temp_devices": "templates/heating_template.py",
+        "humidifier": "templates/humidifier_template.py"
+    }
+    if device_type in ['освещение', 'безопасность', 'бытовая техника']:
+        return templates['on_off_devices']
+    elif device_type == "отопление" and device_name.startswith("увлажнитель"):
+        return templates['humidifier']
+    elif device_type == "отопление":
+        return templates['on_off_temp_devices']
+    return 'not found'
 @app.route('/create_image', methods=['POST'])
 def create_image():
     logging.info("Received request to create an image")
     data = request.json
     device_name = data.get('device_name')
-    device_type = data.get('device_type')
+    device_type = data.get('device_group')
     room_name = data.get('room_name')
 
     if not device_name or not room_name:
@@ -41,7 +51,14 @@ def create_image():
     try:
         os.makedirs(build_dir, exist_ok=True)
 
-        # Создание Dockerfile
+        template_path = select_template(device_type, device_name)
+        if template_path == 'not found' or not os.path.exists(template_path):
+            logging.error(f"Template for device type '{device_name}{device_type}' not found")
+            return jsonify({"error": f"Template for device type '{device_name}{device_type}' not found"}), 400
+
+        shutil.copy(template_path, os.path.join(build_dir, 'device_simulator.py'))
+        logging.debug(f"Template {template_path} copied to {build_dir}")
+
         dockerfile_content = f"""
         FROM python:3.9-slim
         COPY . /app
@@ -54,36 +71,11 @@ def create_image():
             dockerfile.write(dockerfile_content)
         logging.debug(f"Dockerfile created at {dockerfile_path}")
 
-        # Создание скрипта симулятора устройства
-        device_simulator = f"""
-from flask import Flask, jsonify
-
-app = Flask(__name__)
-
-@app.route('/status', methods=['GET'])
-def status():
-    return jsonify({{
-        "device_name": "{device_name}",
-        "device_type": "{device_type}",
-        "room_name": "{room_name}",
-        "status": "active"
-    }})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-        """
-        simulator_path = os.path.join(build_dir, 'device_simulator.py')
-        with open(simulator_path, 'w') as simulator_file:
-            simulator_file.write(device_simulator)
-        logging.debug(f"Device simulator script created at {simulator_path}")
-
-        # Сборка образа
         logging.info(f"Building Docker image: {container_name}")
         image, build_logs = client.images.build(path=build_dir, tag=f"{container_name}:latest")
         for log in build_logs:
             logging.debug(log)
 
-        # Проверка наличия сети
         network_name = "smarthousesystem_app-network"
         networks = [n.name for n in client.networks.list()]
         logging.debug(f"Available networks: {networks}")
@@ -91,7 +83,6 @@ if __name__ == "__main__":
             logging.error(f"Network {network_name} does not exist")
             raise ValueError(f"Network {network_name} does not exist")
 
-        # Создание контейнера
         logging.info(f"Creating container: {container_name}")
         container = client.containers.create(
             image=container_name,
@@ -175,6 +166,73 @@ def device_status():
         return jsonify({'error': f'Container for {device_name} in room {room_name} not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/toggle_scenario', methods=['POST'])
+def toggle_scenario():
+    data = request.json
+    scenario_name = data.get("scenario_name")
+    devices = data.get("devices")
+    action = data.get("action")
+
+    if not scenario_name or not devices or action not in ["activate", "deactivate"]:
+        return jsonify({"success": False, "message": "Invalid parameters"}), 400
+
+    results = []
+    for device in devices:
+        try:
+            room_name, device_name = device.split(": ")
+            sanitized_name = f"device_{sanitize_name(room_name)}_{sanitize_name(device_name)}"
+
+            container = client.containers.get(sanitized_name)
+
+            if action == "activate":
+                if container.status != "running":
+                    container.start()
+                    results.append({
+                        "device": device,
+                        "success": True,
+                        "message": "Device started successfully"
+                    })
+                else:
+                    results.append({
+                        "device": device,
+                        "success": False,
+                        "message": "Device is already running"
+                    })
+            elif action == "deactivate":
+                if container.status == "running":
+                    container.stop()
+                    results.append({
+                        "device": device,
+                        "success": True,
+                        "message": "Device stopped successfully"
+                    })
+                else:
+                    results.append({
+                        "device": device,
+                        "success": False,
+                        "message": "Device is not running"
+                    })
+
+        except docker.errors.NotFound:
+            results.append({
+                "device": device,
+                "success": False,
+                "message": "Container not found"
+            })
+        except Exception as e:
+            results.append({
+                "device": device,
+                "success": False,
+                "message": f"Error: {str(e)}"
+            })
+
+    all_success = all(r["success"] for r in results)
+    return jsonify({
+        "success": all_success,
+        "message": f"Scenario {action}d {'successfully' if all_success else 'with some errors'}",
+        "details": results
+    })
 
 
 if __name__ == '__main__':
