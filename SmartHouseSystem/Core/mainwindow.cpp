@@ -74,8 +74,8 @@ void MainWindow::initUI() {
     allDevicesButton = new QPushButton("Все устройства", this);
     connect(allDevicesButton, &QPushButton::clicked, this, &MainWindow::onAllDevicesButtonClicked);
 
-    noticeButton = new QPushButton("Уведомления",this);
-    connect(noticeButton, &QPushButton::clicked, this, &MainWindow::onNoticeButtonClicked);
+    //noticeButton = new QPushButton("Уведомления",this);
+    //connect(noticeButton, &QPushButton::clicked, this, &MainWindow::onNoticeButtonClicked);
 
     addDeviceButton->setFixedSize(200, 50);
     scenarioButton->setFixedSize(200, 60);
@@ -83,7 +83,7 @@ void MainWindow::initUI() {
     addRoomButton->setFixedSize(200, 50);
     addScenarioButton->setFixedSize(200, 50);
     logoutButton->setFixedSize(100, 35);
-    noticeButton->setFixedSize(50,50);
+    //noticeButton->setFixedSize(50,50);
 
     sideMenu = new QWidget(this);
     sideMenuLayout = new QVBoxLayout(sideMenu);
@@ -99,7 +99,7 @@ void MainWindow::initUI() {
     headerLayout->addWidget(addScenarioButton);
 
     headerLayout->addStretch();
-    headerLayout->addWidget(noticeButton);
+    //headerLayout->addWidget(noticeButton);
 
     headerLayout->addWidget(logoutButton);
 
@@ -131,7 +131,7 @@ void MainWindow::initUI() {
     addShadowEffect(addRoomButton);
     addShadowEffect(logoutButton);
     addShadowEffect(addScenarioButton);
-    addShadowEffect(noticeButton);
+    //addShadowEffect(noticeButton);
 
     setStyleSheet("background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,  "
                   "stop: 0.5 #333464, stop: 1 #7a54a6);");
@@ -165,7 +165,7 @@ void MainWindow::loadRoomsFromDatabase()
     NetworkManager::instance().sendRequest(request);
 }
 
-void MainWindow::onNoticeButtonClicked()
+/*void MainWindow::onNoticeButtonClicked()
 {
     QString pathNoticeIcon = "C:/Users/2005k/Documents/SmartHouseSystem/images/notication_button.png";
     QIcon noticeIcon(pathNoticeIcon);
@@ -188,7 +188,7 @@ void MainWindow::onNoticeButtonClicked()
 
     // Привязываем меню к кнопке
     noticeButton->setMenu(menu);
-}
+}*/
 
 void MainWindow::onAllDevicesButtonClicked()
 {
@@ -577,10 +577,9 @@ void MainWindow::displayScenariosInGrid(QVector<QString> &scenarios){
             ++row;
         }
     }
+}
 
 void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices)
-
-
 {
     clearGridLayout(gridLayout);
 
@@ -716,7 +715,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             request["deviceName"] = item;
             request["roomName"]=roomName;
             request["state"] = button->isChecked(); // true (включить) или false (выключить)
-            button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 25px;" : "background-color: #f9e2bd;""border-radius: 25px;");
+            button->setStyleSheet(button->isChecked() ? "background-color: rgb(251, 117, 255, 100);""border-radius: 25px;" : "background-color:  rgb(191, 161, 249, 50);""border-radius: 25px;");
             NetworkManager::instance().sendRequest(request);
 
         });
@@ -828,14 +827,14 @@ void MainWindow::displayAllDevicesInGrid(const QVector<QString> &items)
 //                 *isOff = !(*isOff); // Переключаем состояние
 
 
-            connect(button, &QPushButton::clicked, this, [this, button, item, roomTrimmed]() {
+            connect(button, &QPushButton::clicked, this, [this, button, device, roomTrimmed]() {
                 QJsonObject request;
                 request["action"] = "toggleDevice";
-                request["deviceName"] = item;
+                request["deviceName"] = device;
                 request["roomName"] = roomTrimmed;
-                qDebug() << "Device:" << item << ", Room:" << roomTrimmed;
+                qDebug() << "Device:" << device << ", Room:" << roomTrimmed;
                 request["state"] = button->isChecked(); // true (включить) или false (выключить)
-                button->setStyleSheet(button->isChecked() ? "background-color: #8fc98b;""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;" : "background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';");
+                button->setStyleSheet(button->isChecked() ? "background-color: rgb(251, 117, 255, 100);""border-radius: 20px;""padding: 20px;""font: bold 23px 'Oswald';}""color: #e7c9ef;" : "background-color: rgb(191, 161, 249, 50);""border-radius: 20px;""padding: 20px;""color: #e7c9ef;""font: bold 23px 'Oswald';");
                 NetworkManager::instance().sendRequest(request);
 
 

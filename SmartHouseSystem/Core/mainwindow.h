@@ -25,7 +25,7 @@ signals:
     void devicesLoaded(const QVector<QString> &devices);
 
 private slots:
-    void onNoticeButtonClicked();
+    //void onNoticeButtonClicked();
     void onAddRoomButtonClicked();
     void onAddDeviceButtonClicked();
     void onAllDevicesButtonClicked();
@@ -47,7 +47,7 @@ private slots:
 private:
 
     QPushButton *logoutButton;
-    QPushButton *noticeButton;
+    //QPushButton *noticeButton;
     QPushButton *addRoomButton;
     QPushButton *addDeviceButton;
     QPushButton *scenarioButton;
