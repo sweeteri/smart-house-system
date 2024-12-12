@@ -161,7 +161,6 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
         return false;
     }
     int deviceCount = query.value(0).toInt();
-
     generatedDeviceName = deviceCount == 0 ? deviceType : QString("%1 %2").arg(deviceType).arg(deviceCount + 1);
 
     query.prepare("INSERT INTO devices (room_id, device_type_id, device_group, name, status) "
@@ -176,15 +175,9 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
         return false;
     }
 
-    int deviceId = query.lastInsertId().toInt();
-
-    if (deviceGroup == "отопление") {
-        QString sensorType;
-        if (deviceType == "увлажнитель") {
-            sensorType = "влажность";
-        } else {
-            sensorType = "температура";
-        }
+    // Добавить датчик, связанный с устройством
+    /*if (deviceGroup == "отопление") {
+        QString sensorType = (deviceType == "увлажнитель") ? "влажность" : "температура";
 
         query.prepare("INSERT INTO sensors (room_id, type, status, last_signal) "
                       "VALUES (:room_id, :type, 'active', CURRENT_TIMESTAMP)");
@@ -195,11 +188,11 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
             qDebug() << "Failed to add sensor for device: " << query.lastError().text();
             return false;
         }
-    }
+    }*/
 
-    query.prepare("SELECT COUNT(*) FROM sensors WHERE room_id = :room_id AND type = :type");
     QStringList roomSensorTypes = {"влажность", "температура"};
     for (const QString &type : roomSensorTypes) {
+        query.prepare("SELECT COUNT(*) FROM sensors WHERE room_id = :room_id AND type = :type");
         query.bindValue(":room_id", roomId);
         query.bindValue(":type", type);
 
@@ -209,7 +202,6 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
         }
 
         if (query.next() && query.value(0).toInt() == 0) {
-            // Добавление общего датчика
             query.prepare("INSERT INTO sensors (room_id, type, status, last_signal) "
                           "VALUES (:room_id, :type, 'active', CURRENT_TIMESTAMP)");
             query.bindValue(":room_id", roomId);
@@ -224,6 +216,7 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
 
     return true;
 }
+
 
 
 QMap<QString, QStringList> DatabaseManager::getAllDevices() {
@@ -337,20 +330,20 @@ QJsonArray DatabaseManager::getDevicesByScenario(const QString &scenarioName) {
 
     if (!query.exec()) {
         qDebug() << "Failed to fetch devices for scenario:" << query.lastError();
-        return QJsonArray(); // Возвращаем пустой массив, если запрос не удался
+        return QJsonArray();
     }
 
     if (query.next()) {
         QString devicesJson = query.value(0).toString();
         QJsonDocument doc = QJsonDocument::fromJson(devicesJson.toUtf8());
         if (!doc.isNull() && doc.isArray()) {
-            return doc.array(); // Возвращаем массив устройств
+            return doc.array();
         } else {
             qDebug() << "Failed to parse devices JSON:" << devicesJson;
         }
     }
 
-    return QJsonArray(); // Возвращаем пустой массив, если сценарий не найден
+    return QJsonArray();
 }
 
 
@@ -370,4 +363,40 @@ QMap<QString, QStringList> DatabaseManager::getDevicesGroupedByType() {
 
     return groupedDevices;
 }
+QMap<QString, QStringList> DatabaseManager::getAllRoomSensors() {
+    QSqlQuery query;
+    QMap<QString, QStringList> sensors;
+
+    if (!query.prepare("SELECT sensors.type AS sensor_type, rooms.name AS room_name "
+                       "FROM sensors "
+                       "JOIN rooms ON sensors.room_id = rooms.id "
+                       )) {
+        qDebug() << "Failed to prepare query for room sensors:" << query.lastError().text();
+        return sensors;
+    }
+
+    if (!query.exec()) {
+        qDebug() << "Failed to execute query for room sensors:" << query.lastError().text();
+        return sensors;
+    }
+
+    while (query.next()) {
+        QString sensorType = query.value("sensor_type").toString();
+        QString roomName = query.value("room_name").toString();
+
+        if (!sensors.contains(sensorType)) {
+            sensors[sensorType] = QStringList();
+        }
+        if (!sensors[sensorType].contains(roomName)) {
+            sensors[sensorType].append(roomName);
+        }
+    }
+
+    return sensors;
+}
+
+
+
+
+
 
