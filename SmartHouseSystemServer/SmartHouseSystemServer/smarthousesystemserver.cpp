@@ -55,6 +55,8 @@ SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
                     processLoadScenarioDevicesRequest(socket, request);
                 }else if (action=="toggleScenario"){
                     processToggleScenarioRequest(socket, request);
+                }else if (action=="loadRoomSensors"){
+                    processLoadRoomSensors(socket, request);
                 }
 
             }
@@ -235,8 +237,9 @@ void SmartHouseSystemServer::processAddDeviceRequest(QTcpSocket *socket, const Q
 
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
-
 }
+
+
 void SmartHouseSystemServer::sendCreateContainerRequest(const QString &deviceName, const QString &deviceGroup, const QString &roomName) {
     QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
     QUrl url("http://flask_manager:5000/create_image");
@@ -396,6 +399,24 @@ void SmartHouseSystemServer::processLoadScenarioDevicesRequest(QTcpSocket *socke
         devicesArray.append(deviceObject);
     }
     response["devices"] = devicesArray;
+    socket->write(QJsonDocument(response).toJson());
+    socket->flush();
+}
+void SmartHouseSystemServer::processLoadRoomSensors(QTcpSocket *socket, const QJsonObject &request){
+    QMap<QString, QStringList> sensors = DatabaseManager::instance().getAllRoomSensors();
+
+    QJsonObject response;
+    response["action"] = "loadRoomSensors";
+
+    QJsonArray sensorsArray;
+    for (auto it = sensors.begin(); it != sensors.end(); ++it) {
+        QJsonObject sensorObject;
+        sensorObject["type"] = it.key();
+        sensorObject["rooms"] = QJsonArray::fromStringList(it.value());
+        sensorsArray.append(sensorObject);
+    }
+    response["sensors"] = sensorsArray;
+
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
