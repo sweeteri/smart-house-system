@@ -178,7 +178,7 @@ void SmartHouseSystemServer::processLoadDevicesRequest(QTcpSocket *socket, const
     QJsonArray devicesArray;
     for (auto it = devices.begin(); it != devices.end(); ++it) {
         QJsonObject deviceObject;
-        deviceObject["type"] = it.key();
+        deviceObject["name"] = it.key();
         deviceObject["rooms"] = QJsonArray::fromStringList(it.value());
         devicesArray.append(deviceObject);
     }

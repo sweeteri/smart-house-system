@@ -182,38 +182,37 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
 }
 
 QMap<QString, QStringList> DatabaseManager::getAllDevices() {
-    QMap<QString, QStringList> deviceRoomMap;
+    QMap<QString, QStringList> deviceNameMap;
 
     QString sqlQuery = R"(
         SELECT
-            device_types.type AS device_type,
+            devices.name AS device_name,
             rooms.name AS room_name
         FROM devices
         LEFT JOIN rooms ON devices.room_id = rooms.id
-        LEFT JOIN device_types ON devices.device_type_id = device_types.id
     )";
 
     QSqlQuery query;
     if (!query.exec(sqlQuery)) {
         qDebug() << "Failed to execute query: " << sqlQuery;
         qDebug() << "Error: " << query.lastError().text();
-        return deviceRoomMap;
+        return deviceNameMap;
     }
 
     while (query.next()) {
-        QString deviceType = query.value(0).toString();
+        QString deviceName = query.value(0).toString();
         QString roomName = query.value(1).toString();
 
-        if (!deviceRoomMap.contains(deviceType)) {
-            deviceRoomMap[deviceType] = QStringList();
+        if (!deviceNameMap.contains(deviceName)) {
+            deviceNameMap[deviceName] = QStringList();
         }
 
         if (!roomName.isEmpty()) {
-            deviceRoomMap[deviceType].append(roomName);
+            deviceNameMap[deviceName].append(roomName);
         }
     }
 
-    return deviceRoomMap;
+    return deviceNameMap;
 }
 
 QStringList DatabaseManager::getAllRooms() {

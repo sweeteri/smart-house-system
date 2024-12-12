@@ -484,14 +484,14 @@ void MainWindow::handleLoadAllDevicesResponse(const QJsonObject &response) {
     QVector<QString> devices;
     for (const QJsonValue &value : devicesArray) {
         QJsonObject deviceObject = value.toObject();
-        QString deviceType = deviceObject["type"].toString();
+        QString deviceName = deviceObject["name"].toString();
         QJsonArray roomsArray = deviceObject["rooms"].toArray();
         QStringList roomList;
         for (const QJsonValue &room : roomsArray) {
             roomList.append(room.toString());
         }
 
-        QString deviceEntry = deviceType + ": " + roomList.join(", ");
+        QString deviceEntry = deviceName + ": " + roomList.join(", ");
         devices.push_back(deviceEntry);
     }
     displayAllDevicesInGrid(devices);
