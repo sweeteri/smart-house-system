@@ -18,9 +18,9 @@ def sanitize_name(name):
 
 def select_template(device_type, device_name):
     templates = {
-        "on_off_devices": "templates/lighting_template.py",
-        "on_off_temp_devices": "templates/heating_template.py",
-        "humidifier": "templates/humidifier_template.py"
+        "on_off_devices": "devices_templates/lighting_template.py",
+        "on_off_temp_devices": "devices_templates/heating_template.py",
+        "humidifier": "devices_templates/humidifier_template.py"
     }
     if device_type in ['освещение', 'безопасность', 'бытовая техника']:
         return templates['on_off_devices']
@@ -29,6 +29,67 @@ def select_template(device_type, device_name):
     elif device_type == "отопление":
         return templates['on_off_temp_devices']
     return 'not found'
+
+
+def create_or_start_room_sensor(room_name, sensor_type):
+    sanitized_room_name = sanitize_name(room_name)
+    container_name = f"sensor_{sanitized_room_name}_{sensor_type}"
+
+    # Проверка существования контейнера
+    try:
+        container = client.containers.get(container_name)
+        if container.status != "running":
+            container.start()
+        logging.info(f"Container {container_name} already exists and is running.")
+        return True
+    except docker.errors.NotFound:
+        logging.info(f"Container {container_name} not found. Creating...")
+    except Exception as e:
+        logging.error(f"Error checking container {container_name}: {str(e)}")
+        return False
+
+    # Создание контейнера
+    build_dir = os.path.join('/tmp', container_name)
+    os.makedirs(build_dir, exist_ok=True)
+
+    try:
+        template_path = f"sensors_templates/{sensor_type}_sensor_template.py"
+        if not os.path.exists(template_path):
+            logging.error(f"Template for sensor type '{sensor_type}' not found")
+            return False
+
+        shutil.copy(template_path, os.path.join(build_dir, 'sensor_simulator.py'))
+        dockerfile_content = f"""
+        FROM python:3.9-slim
+        COPY . /app
+        WORKDIR /app
+        RUN pip install flask
+        CMD ["python", "sensor_simulator.py"]
+        """
+        with open(os.path.join(build_dir, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write(dockerfile_content)
+
+        image, _ = client.images.build(path=build_dir, tag=f"{container_name}:latest")
+        network_name = "smarthousesystem_app-network"
+        container = client.containers.create(
+            image=container_name,
+            name=container_name,
+            detach=True,
+            environment={
+                "ROOM_NAME": room_name,
+                "SENSOR_TYPE": sensor_type
+            },
+            network=network_name
+        )
+        container.start()
+        return True
+    except Exception as e:
+        logging.error(f"Failed to create container {container_name}: {str(e)}")
+        return False
+    finally:
+        shutil.rmtree(build_dir)
+
+
 @app.route('/create_image', methods=['POST'])
 def create_image():
     logging.info("Received request to create an image")
@@ -49,6 +110,10 @@ def create_image():
     logging.debug(f"Build directory: {build_dir}")
 
     try:
+        if device_type == "отопление":
+            create_or_start_room_sensor(room_name, "temperature")
+            if device_name.startswith("увлажнитель"):
+                create_or_start_room_sensor(room_name, "humidity")
         os.makedirs(build_dir, exist_ok=True)
 
         template_path = select_template(device_type, device_name)

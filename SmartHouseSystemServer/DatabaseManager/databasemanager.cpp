@@ -132,8 +132,6 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
     }
     int roomId = query.value(0).toInt();
 
-
-
     query.prepare("SELECT id FROM device_types WHERE type = :device_type");
     query.bindValue(":device_type", deviceType);
     if (!query.exec()) {
@@ -178,8 +176,55 @@ bool DatabaseManager::addDevice(const QString &roomName, const QString &deviceTy
         return false;
     }
 
+    int deviceId = query.lastInsertId().toInt();
+
+    if (deviceGroup == "отопление") {
+        QString sensorType;
+        if (deviceType == "увлажнитель") {
+            sensorType = "влажность";
+        } else {
+            sensorType = "температура";
+        }
+
+        query.prepare("INSERT INTO sensors (room_id, type, status, last_signal) "
+                      "VALUES (:room_id, :type, 'active', CURRENT_TIMESTAMP)");
+        query.bindValue(":room_id", roomId);
+        query.bindValue(":type", sensorType);
+
+        if (!query.exec()) {
+            qDebug() << "Failed to add sensor for device: " << query.lastError().text();
+            return false;
+        }
+    }
+
+    query.prepare("SELECT COUNT(*) FROM sensors WHERE room_id = :room_id AND type = :type");
+    QStringList roomSensorTypes = {"влажность", "температура"};
+    for (const QString &type : roomSensorTypes) {
+        query.bindValue(":room_id", roomId);
+        query.bindValue(":type", type);
+
+        if (!query.exec()) {
+            qDebug() << "Failed to check room sensors: " << query.lastError().text();
+            return false;
+        }
+
+        if (query.next() && query.value(0).toInt() == 0) {
+            // Добавление общего датчика
+            query.prepare("INSERT INTO sensors (room_id, type, status, last_signal) "
+                          "VALUES (:room_id, :type, 'active', CURRENT_TIMESTAMP)");
+            query.bindValue(":room_id", roomId);
+            query.bindValue(":type", type);
+
+            if (!query.exec()) {
+                qDebug() << "Failed to add room sensor: " << query.lastError().text();
+                return false;
+            }
+        }
+    }
+
     return true;
 }
+
 
 QMap<QString, QStringList> DatabaseManager::getAllDevices() {
     QMap<QString, QStringList> deviceNameMap;

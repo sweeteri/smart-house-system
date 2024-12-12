@@ -37,6 +37,15 @@ CREATE TABLE IF NOT EXISTS sensors (
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS sensor_parameters (
+    id SERIAL PRIMARY KEY,
+    sensor_id INTEGER NOT NULL,
+    parameter_name TEXT NOT NULL,  -- Название параметра, например, "temperature" или "humidity"
+    parameter_value NUMERIC,      -- Значение параметра
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Время записи параметра
+    FOREIGN KEY (sensor_id) REFERENCES sensors(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS sensor_events (
     id SERIAL PRIMARY KEY,
     sensor_id INTEGER,
