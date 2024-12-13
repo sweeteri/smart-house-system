@@ -12,10 +12,9 @@ app = Flask(__name__)
 client = docker.from_env()
 
 # Инициализация Ray
-ray.init(address="ray_service:6379")
+ray.init()
 
 # Утилиты
-
 def sanitize_name(name):
     sanitized = unidecode.unidecode(name)
     sanitized = re.sub(r'[^a-zA-Z0-9_-]', '_', sanitized)
@@ -38,6 +37,7 @@ def select_template(device_type, device_name):
 # Распределённые задачи Ray
 @ray.remote
 def simulate_device(device_name, room_name, action):
+    """Эта задача получает только сериализуемые данные."""
     logging.info(f"Simulating {action} action for device {device_name} in room {room_name}")
     return {
         "device_name": device_name,
@@ -47,36 +47,19 @@ def simulate_device(device_name, room_name, action):
     }
 
 @ray.remote
-def create_or_start_room_sensor_task(room_name, sensor_type):
-    logging.info(f"Creating or starting sensor {sensor_type} in room {room_name}")
-    return create_or_start_room_sensor(room_name, sensor_type)
-
-def create_or_start_room_sensor(room_name, sensor_type):
-    sanitized_room_name = sanitize_name(room_name)
-    container_name = f"sensor_{sanitized_room_name}_{sensor_type}"
-
+def create_room_sensor_task(room_name, sensor_type):
+    """Создание сенсора в комнате в распределённой задаче."""
     try:
-        container = client.containers.get(container_name)
-        if container.status != "running":
-            container.start()
-        logging.info(f"Container {container_name} already exists and is running.")
-        return True
-    except docker.errors.NotFound:
-        logging.info(f"Container {container_name} not found. Creating...")
-    except Exception as e:
-        logging.error(f"Error checking container {container_name}: {str(e)}")
-        return False
+        sanitized_room_name = sanitize_name(room_name)
+        container_name = f"sensor_{sanitized_room_name}_{sensor_type}"
+        build_dir = os.path.join('/tmp', container_name)
+        os.makedirs(build_dir, exist_ok=True)
 
-    build_dir = os.path.join('/tmp', container_name)
-    os.makedirs(build_dir, exist_ok=True)
-
-    try:
+        # Копируем шаблон сенсора
         template_path = f"sensors_templates/{sensor_type}_sensor_template.py"
-        if not os.path.exists(template_path):
-            logging.error(f"Template for sensor type '{sensor_type}' not found")
-            return False
-
         shutil.copy(template_path, os.path.join(build_dir, 'sensor_simulator.py'))
+
+        # Создаём Dockerfile
         dockerfile_content = f"""
         FROM python:3.9-slim
         COPY . /app
@@ -87,25 +70,26 @@ def create_or_start_room_sensor(room_name, sensor_type):
         with open(os.path.join(build_dir, 'Dockerfile'), 'w') as dockerfile:
             dockerfile.write(dockerfile_content)
 
+        # Создаём Docker-образ
         image, _ = client.images.build(path=build_dir, tag=f"{container_name}:latest")
-        network_name = "smarthousesystem_app-network"
         container = client.containers.create(
-            image=container_name,
+            image=f"{container_name}:latest",
             name=container_name,
             detach=True,
             environment={
                 "ROOM_NAME": room_name,
                 "SENSOR_TYPE": sensor_type
             },
-            network=network_name
+            network="smarthousesystem_app-network"
         )
         container.start()
-        return True
+        return {"status": "success", "container_name": container_name}
     except Exception as e:
-        logging.error(f"Failed to create container {container_name}: {str(e)}")
-        return False
+        logging.error(f"Error creating container {container_name}: {e}")
+        return {"status": "error", "error": str(e)}
     finally:
-        shutil.rmtree(build_dir)
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir)
 
 # Эндпоинты
 @app.route('/create_image', methods=['POST'])
@@ -125,24 +109,25 @@ def create_image():
     container_name = f"device_{sanitized_room_name}_{sanitized_device_name}"
 
     build_dir = os.path.join('/tmp', container_name)
-    logging.debug(f"Build directory: {build_dir}")
 
     try:
+        # Создание сенсоров через Ray
         if device_type == "отопление":
-            ray.get(create_or_start_room_sensor_task.remote(room_name, "temperature"))
+            ray.get(create_room_sensor_task.remote(room_name, "temperature"))
             if device_name.startswith("увлажнитель"):
-                ray.get(create_or_start_room_sensor_task.remote(room_name, "humidity"))
+                ray.get(create_room_sensor_task.remote(room_name, "humidity"))
 
         os.makedirs(build_dir, exist_ok=True)
 
+        # Копируем шаблон устройства
         template_path = select_template(device_type, device_name)
         if template_path == 'not found' or not os.path.exists(template_path):
             logging.error(f"Template for device type '{device_name}{device_type}' not found")
             return jsonify({"error": f"Template for device type '{device_name}{device_type}' not found"}), 400
 
         shutil.copy(template_path, os.path.join(build_dir, 'device_simulator.py'))
-        logging.debug(f"Template {template_path} copied to {build_dir}")
 
+        # Создаём Dockerfile
         dockerfile_content = f"""
         FROM python:3.9-slim
         COPY . /app
@@ -150,26 +135,13 @@ def create_image():
         RUN pip install flask
         CMD ["python", "device_simulator.py"]
         """
-        dockerfile_path = os.path.join(build_dir, 'Dockerfile')
-        with open(dockerfile_path, 'w') as dockerfile:
+        with open(os.path.join(build_dir, 'Dockerfile'), 'w') as dockerfile:
             dockerfile.write(dockerfile_content)
-        logging.debug(f"Dockerfile created at {dockerfile_path}")
 
-        logging.info(f"Building Docker image: {container_name}")
-        image, build_logs = client.images.build(path=build_dir, tag=f"{container_name}:latest")
-        for log in build_logs:
-            logging.debug(log)
-
-        network_name = "smart-house-system_app-network"
-        networks = [n.name for n in client.networks.list()]
-        logging.debug(f"Available networks: {networks}")
-        if network_name not in networks:
-            logging.error(f"Network {network_name} does not exist")
-            raise ValueError(f"Network {network_name} does not exist")
-
-        logging.info(f"Creating container: {container_name}")
+        # Создаём Docker-образ
+        image, _ = client.images.build(path=build_dir, tag=f"{container_name}:latest")
         container = client.containers.create(
-            image=container_name,
+            image=f"{container_name}:latest",
             name=container_name,
             detach=True,
             environment={
@@ -177,9 +149,9 @@ def create_image():
                 "DEVICE_TYPE": device_type,
                 "ROOM": room_name
             },
-            network=network_name
+            network="smart-house-system_app-network"
         )
-        logging.debug(f"Container created: {container}")
+        container.start()
 
         return jsonify({"message": f"Image and container for {container_name} created successfully"}), 201
     except Exception as e:
@@ -188,7 +160,8 @@ def create_image():
     finally:
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir)
-            logging.debug(f"Temporary build directory {build_dir} removed")
+
+# Другие эндпоинты остаются прежними...
 
 @app.route('/toggle_device', methods=['POST'])
 def toggle_device():

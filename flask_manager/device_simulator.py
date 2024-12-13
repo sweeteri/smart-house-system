@@ -1,12 +1,11 @@
 import flask
 import ray
 
-# Инициализация Ray
 ray.init()
 
 app = flask.Flask(__name__)
 
-# Храним состояние устройства
+# Храним состояние устройства в сериализуемом формате
 device_state = {
     "device_name": "Generic Device",
     "device_type": "switch",
@@ -52,12 +51,16 @@ def toggle_device():
     if new_status not in ["on", "off"]:
         return flask.jsonify({"error": "Invalid status. Use 'on' or 'off'."}), 400
 
-    # Выполнение через Ray
-    task_result = ray.get(toggle_device_task.remote(
-        device_state["device_name"],
-        device_state["device_type"],
-        new_status
-    ))
+    try:
+        # Выполнение через Ray
+        task_result = ray.get(toggle_device_task.remote(
+            device_state["device_name"],
+            device_state["device_type"],
+            new_status
+        ))
+    except Exception as e:
+        app.logger.error(f"Ray task failed: {str(e)}")
+        return flask.jsonify({"error": "Task execution failed", "details": str(e)}), 500
 
     # Обновление состояния устройства на основе результата
     if "error" not in task_result:

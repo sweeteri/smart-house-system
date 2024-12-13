@@ -433,7 +433,7 @@ void MainWindow::handleLoadRoomsResponse(const QJsonObject &response) {
         delete widget;
     }
 
-    int fontId = QFontDatabase::addApplicationFont("C:/Users/2005k/Documents/SmartHouseSystem/images/Oswald/Oswald-VariableFont_wght.ttf");
+    int fontId = QFontDatabase::addApplicationFont("C:/Programming/smart-house-system/Oswald/Oswald-VariableFont_wght.ttf");
 
     QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
     QString oswaldFont = fontFamilies.isEmpty() ? "Arial" : fontFamilies.at(0);
@@ -604,7 +604,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/lamp.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/lamp.png"));
             QSize iconSize(90, 90);
             button->setIconSize(iconSize);
             button->setText("");
@@ -614,7 +614,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/conditioner.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/conditioner.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -623,7 +623,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/heater.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/heater.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -632,7 +632,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/floor.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/floor.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -641,7 +641,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/humidifier.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/humidifier.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -650,7 +650,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/column.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/column.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -659,7 +659,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/lock.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/lock.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -668,7 +668,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/coffee.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/coffee.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -677,7 +677,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/sirena.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/sirena.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -687,7 +687,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/robot.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/robot.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -696,7 +696,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/curtains.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/curtains.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
@@ -705,7 +705,7 @@ void MainWindow::displayItemsInGrid(const QVector<QString> &items, const QString
             button->setFixedSize(170, 150);
             button->setStyleSheet("QPushButton {""background-color: rgb(191, 161, 249, 50);""border-radius: 25px;""}""QPushButton:hover {""background-color: rgb(114, 7, 168, 40);""}");
             addShadowEffect(button);
-            button->setIcon(QIcon("C:/Users/2005k/Documents/SmartHouseSystem/images/washing.png"));
+            button->setIcon(QIcon("C:/Programming/smart-house-system/images/washing.png"));
             QSize iconSize(70, 70);
             button->setIconSize(iconSize);
             button->setText("");
