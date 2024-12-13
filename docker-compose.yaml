@@ -40,6 +40,17 @@ services:
       - app-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - ray_service
+  
+  ray_service:
+    build: ./ray_service
+    ports:
+      - "8265:8265"  # Ray Dashboard
+      - "6379:6379"  # Ray Cluster
+    networks:
+      - app-network
+
     
 
 volumes:
