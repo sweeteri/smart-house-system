@@ -11,7 +11,7 @@
 #include <QGraphicsDropShadowEffect>
 #include <QStackedWidget>
 #include <QFontDatabase>
-
+#include <QTimer>
 #include <QMenu>
 #include <QAction>
 #include <QCoreApplication>
@@ -33,7 +33,9 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
         &NetworkManager::responseReceived,
         this,
         &MainWindow::handleServerResponse);
+    connect(&NetworkManager::instance(), &NetworkManager::httpResponseReceived, this, &MainWindow::updateSensorData);
     loadRoomsFromDatabase();
+    setupUpdateTimer();
 }
 void MainWindow::setUserRole(const QString &role) {
     userRole = role;
@@ -46,7 +48,11 @@ void MainWindow::configureUIBasedOnRole() {
     addDeviceButton->setVisible(isAdmin);
     addScenarioButton->setVisible(isAdmin);
 }
-
+void MainWindow::setupUpdateTimer(){
+    updateTimer = new QTimer(this);
+    connect(updateTimer, &QTimer::timeout, this, &MainWindow::updateSensorData);
+    updateTimer->start(3000);
+}
 MainWindow::~MainWindow() {}
 
 auto addShadowEffect = [](QPushButton* button) {
@@ -56,6 +62,7 @@ auto addShadowEffect = [](QPushButton* button) {
     shadowEffect->setBlurRadius(5);
     button->setGraphicsEffect(shadowEffect);
 };
+
 void MainWindow::initUI() {
     logoutButton = new QPushButton("Выйти", this);
     connect(logoutButton, &QPushButton::clicked, this, [this](){ emit backToMain(); });
@@ -132,7 +139,7 @@ void MainWindow::initUI() {
     resize(800, 600);
 
     currentRoom = QString();
-
+    QTimer *updateTimer;
     addShadowEffect(scenarioButton);
     addShadowEffect(allDevicesButton);
     addShadowEffect(addDeviceButton);
@@ -166,11 +173,19 @@ void MainWindow::initUI() {
     addScenarioButton->setStyleSheet(buttonStyle);
 }
 
+void MainWindow::updateSensorData() {
+    NetworkManager &networkManager = NetworkManager::instance();
+    networkManager.sendGetRequest(QUrl("http://127.0.0.1:5000/sensor_values"));
+    connect(&networkManager, &NetworkManager::responseReceived, this, &MainWindow::handleSensorDataResponse);
+    qDebug()<<"Request to flask sent";
+}
+
 void MainWindow::loadRoomsFromDatabase()
 {
     QJsonObject request;
     request["action"] = "loadRooms";
     NetworkManager::instance().sendRequest(request);
+
 }
 
 
@@ -345,6 +360,7 @@ void MainWindow::onAddScenarioButtonClicked() {
     scenarioDialog->exec();
 }
 
+
 void MainWindow::handleServerResponse(const QJsonObject &response)
 {
     QString action = response["action"].toString();
@@ -370,9 +386,50 @@ void MainWindow::handleServerResponse(const QJsonObject &response)
         handleLoadAllDevicesForScenarios(response);
     }else if (action=="loadRoomSensors"){
         handleLoadRoomSensorsResponse(response);
+    }else if (action=="loadAllSensorData"){
+        handleSensorDataResponse(response);
     }
 
 }
+
+void MainWindow::handleSensorDataResponse(const QJsonObject &response) {
+    qDebug() << "Received response from Flask:" << response;
+
+    // Проверяем наличие данных по сенсорам комнат
+    /*if (response.contains("common_sensors") && response["common_sensors"].isObject()) {
+        QJsonObject roomSensors = response["common_sensors"].toObject();
+        QVector<QString> sensors;
+
+        for (const QString &room : roomSensors.keys()) {
+            QStringList sensorList;
+            QJsonObject sensorsInRoom = roomSensors[room].toObject();
+
+            for (const QString &sensorType : sensorsInRoom.keys()) {
+                QString sensorValue = sensorsInRoom[sensorType].toString();
+                sensorList.append(sensorType + " (" + sensorValue + ")");
+            }
+
+            if (!sensorList.isEmpty()) {
+                sensors.append(room + ": " + sensorList.join(", "));
+            }
+        }
+
+        // Обновляем интерфейс для сенсоров
+        if (!sensors.isEmpty()) {
+            displayAllSensorsInGrid(sensors);
+        } else {
+            qDebug() << "No sensors data for rooms.";
+        }
+    } else {
+        qDebug() << "No room_sensors data in response.";
+    }
+
+    if (response.contains("error")) {
+        qWarning() << "Error in response:" << response["error"].toString();
+    }*/
+}
+
+
 void MainWindow::handleToggleDeviceResponse(const QJsonObject &response)
 {
     QString deviceName = response["deviceName"].toString();

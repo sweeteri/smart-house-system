@@ -7,7 +7,6 @@
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 
-
 class SmartHouseSystemServer : public QTcpServer {
     Q_OBJECT
 public:
@@ -31,11 +30,11 @@ private slots:
     void processToggleDeviceRequest(QTcpSocket *socket, const QJsonObject &request);
     void processToggleScenarioRequest(QTcpSocket *socket, const QJsonObject &request);
     void processLoadRoomSensors(QTcpSocket *socket, const QJsonObject &request);
-
     void processControlDeviceRequest(QTcpSocket *socket, const QJsonObject &request);
     void processDeviceGroupsRequest(QTcpSocket *socket, const QJsonObject &request);
 private:
     QNetworkAccessManager *networkManager;
+    void handleSocketData(QTcpSocket *socket);
     void sendRequestToFlask(const QJsonObject &request, const QString &endpoint);
     void sendCreateContainerRequest(const QString &deviceName, const QString &deviceGroup,const QString &roomName);
     void toggleDevice(const QString &deviceName, const QString &roomName, bool state);

@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QSqlQuery>
 #include <QNetworkReply>
+#include <QUrlQuery>
 
 SmartHouseSystemServer::SmartHouseSystemServer(QObject *parent)
     : QTcpServer(parent), networkManager(new QNetworkAccessManager(this)) {
@@ -420,6 +421,9 @@ void SmartHouseSystemServer::processLoadRoomSensors(QTcpSocket *socket, const QJ
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
+
+
+
 void SmartHouseSystemServer::sendRequestToFlask(const QJsonObject &request, const QString &endpoint) {
     QUrl url("http://127.0.0.1:5000/" + endpoint);
     QNetworkRequest flaskRequest(url);

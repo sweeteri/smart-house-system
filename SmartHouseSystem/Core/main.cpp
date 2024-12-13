@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     NetworkManager &networkManager = NetworkManager::instance();
-    if (networkManager.connectToServer("127.0.0.1", 1234)) {
+    if (networkManager.connectToServer("localhost", 1234)) {
         qDebug() << "Connected to server!";
     } else {
         qWarning() << "Failed to connect to server.";

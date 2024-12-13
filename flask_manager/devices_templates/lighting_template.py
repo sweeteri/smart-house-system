@@ -13,7 +13,7 @@ def status():
         "state": state
     })
 
-@app.route('/toggle', methods=['POST'])
+@app.route('/toggle', methods=['GET'])
 def toggle():
     global state
     state = "on" if state == "off" else "off"
