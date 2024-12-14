@@ -51,7 +51,7 @@ void MainWindow::configureUIBasedOnRole() {
 void MainWindow::setupUpdateTimer(){
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, &MainWindow::updateSensorData);
-    updateTimer->start(3000);
+    updateTimer->start(3000000);
 }
 MainWindow::~MainWindow() {}
 
@@ -264,13 +264,37 @@ void MainWindow::onAddScenarioButtonClicked() {
 
     QVBoxLayout *dialogLayout = new QVBoxLayout(scenarioDialog);
 
+
     QListWidget *availableDevices = new QListWidget(scenarioDialog);
     availableDevices->setSelectionMode(QAbstractItemView::SingleSelection);
     availableDevices->setDragEnabled(true);
 
+
     QListWidget *scenarioField = new QListWidget(scenarioDialog);
     scenarioField->setAcceptDrops(true);
     scenarioField->setDragDropMode(QAbstractItemView::DropOnly);
+
+
+    connect(availableDevices, &QListWidget::itemDoubleClicked, this, [=](QListWidgetItem *item) {
+        if (item) {
+
+            QPushButton *controlButton = new QPushButton(item->text() + " - On", scenarioField);
+            controlButton->setFixedWidth(250);
+
+
+            scenarioField->addItem("");
+            scenarioField->setItemWidget(scenarioField->item(scenarioField->count() - 1), controlButton);
+
+
+            connect(controlButton, &QPushButton::clicked, [controlButton]() {
+                if (controlButton->text().endsWith("On")) {
+                    controlButton->setText(controlButton->text().replace("On", "Off"));
+                } else {
+                    controlButton->setText(controlButton->text().replace("Off", "On"));
+                }
+            });
+        }
+    });
 
     QVBoxLayout *availableLayout = new QVBoxLayout();
     availableLayout->addWidget(new QLabel("Доступные устройства:"));
@@ -295,6 +319,7 @@ void MainWindow::onAddScenarioButtonClicked() {
     buttonsLayout->addWidget(cancelButton);
 
     dialogLayout->addLayout(buttonsLayout);
+
 
     QJsonObject request;
     request["action"] = "loadScenarioDevices";
@@ -322,43 +347,54 @@ void MainWindow::onAddScenarioButtonClicked() {
         }
     });
     connect(saveButton, &QPushButton::clicked, this, [this, scenarioField, scenarioDialog]() {
-        QStringList scenarioDevices;
-        for (int i = 0; i < scenarioField->count(); ++i) {
-            scenarioDevices << scenarioField->item(i)->text();
+        QString scenarioName = QInputDialog::getText(scenarioDialog, "Имя сценария", "Введите имя сценария:");
+
+        if (!scenarioName.isEmpty()) {
+            QJsonObject devicesObject;
+
+            for (int i = 0; i < scenarioField->count(); ++i) {
+                QWidget *widget = scenarioField->itemWidget(scenarioField->item(i));
+                QPushButton *controlButton = qobject_cast<QPushButton *>(widget);
+
+                if (controlButton) {
+
+                    QString fullDeviceName = controlButton->text().split(" - ")[0];
+                    QString deviceName = fullDeviceName.trimmed();
+
+                    QString state = controlButton->text().endsWith("On") ? "on" : "off";
+
+
+                    devicesObject[deviceName] = state;
+                }
+            }
+
+
+            QJsonObject request;
+            request["action"] = "addScenario";
+            request["scenarioName"] = scenarioName;
+            request["devices"] = devicesObject;
+
+            QJsonDocument jsonDoc(request);
+            QString jsonString = jsonDoc.toJson(QJsonDocument::Compact);
+
+
+            qDebug() << "Сформированный JSON:" << jsonString;
+
+
+            NetworkManager::instance().sendRequest(request);
+
+            QMessageBox::information(scenarioDialog, "Успех", "Сценарий успешно сохранен.");
+            scenarioDialog->accept();
+        } else {
+            QMessageBox::warning(scenarioDialog, "Ошибка", "Имя сценария не может быть пустым.");
         }
-
-        if (scenarioDevices.isEmpty()) {
-            QMessageBox::warning(this, "Ошибка", "Сценарий не может быть пустым.");
-            return;
-        }
-
-        QString scenarioName = QInputDialog::getText(this, "Добавить сценарий", "Введите имя сценария:");
-        if (scenarioName.isEmpty()) {
-            QMessageBox::warning(this, "Ошибка", "Имя сценария не может быть пустым.");
-            return;
-        }
-
-        // Формируем запрос на сохранение сценария
-        QJsonObject request;
-        request["action"] = "addScenario";
-        request["scenarioName"] = scenarioName;
-
-        QJsonArray devicesArray;
-        for (const QString &device : scenarioDevices) {
-            devicesArray.append(device);
-        }
-        request["devices"] = devicesArray;
-
-        NetworkManager::instance().sendRequest(request);
-
-        QMessageBox::information(this, "Информация", "Сценарий успешно сохранен!");
-        scenarioDialog->accept();
     });
 
-    connect(cancelButton, &QPushButton::clicked, scenarioDialog, &QDialog::reject);
 
+    connect(cancelButton, &QPushButton::clicked, scenarioDialog, &QDialog::reject);
     scenarioDialog->exec();
 }
+
 
 
 void MainWindow::handleServerResponse(const QJsonObject &response)

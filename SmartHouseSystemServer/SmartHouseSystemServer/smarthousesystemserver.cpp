@@ -339,12 +339,12 @@ void SmartHouseSystemServer::processToggleScenarioRequest(QTcpSocket *socket, co
     QString scenarioName = request["scenarioName"].toString();
     bool state = request["state"].toBool();
     QJsonArray devices = DatabaseManager::instance().getDevicesByScenario(scenarioName);
-
+    qDebug()<<devices;
     QJsonObject response;
     response["action"] = "toggleScenario";
     response["scenarioName"] = scenarioName;
     response["devices"] = devices;
-
+    qDebug()<<response;
     toggleScenario(scenarioName, state, devices);
 
     response["success"] = true;
@@ -367,25 +367,37 @@ void SmartHouseSystemServer::processLoadScenariosRequest(QTcpSocket *socket, con
 
 void SmartHouseSystemServer::processAddScenarioRequest(QTcpSocket *socket, const QJsonObject &request) {
     QString scenarioName = request["scenarioName"].toString();
-    QJsonArray devicesArray = request["devices"].toArray();
-    bool success = DatabaseManager::instance().addScenario(scenarioName, devicesArray);
+    QJsonArray devicesArray;
 
-    QJsonObject response;
-
-    if (!success) {
+    if (request["devices"].isObject()) {
+        QJsonObject devicesObject = request["devices"].toObject();
+        for (auto it = devicesObject.begin(); it != devicesObject.end(); ++it) {
+            QJsonObject device;
+            device["name"] = it.key();
+            device["state"] = it.value().toString();
+            devicesArray.append(device);
+        }
+    } else {
+        QJsonObject response;
         response["action"] = "addScenario";
         response["success"] = false;
-        response["message"] = "Failed to create scenario.";
+        response["message"] = "Invalid devices format. Expected QJsonObject.";
         socket->write(QJsonDocument(response).toJson());
         socket->flush();
         return;
     }
+
+
+    bool success = DatabaseManager::instance().addScenario(scenarioName, devicesArray);
+
+    QJsonObject response;
     response["action"] = "addScenario";
-    response["success"] = true;
-    response["message"] = "Scenario added successfully.";
+    response["success"] = success;
+    response["message"] = success ? "Scenario added successfully." : "Failed to create scenario.";
     socket->write(QJsonDocument(response).toJson());
     socket->flush();
 }
+
 
 void SmartHouseSystemServer::processLoadScenarioDevicesRequest(QTcpSocket *socket, const QJsonObject &request){
     QMap<QString, QStringList> devices = DatabaseManager::instance().getAllDevices();

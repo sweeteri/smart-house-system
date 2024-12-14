@@ -44,13 +44,13 @@ def apply_automation_rules(sensor_data):
         operator = condition["operator"]
         target_value = condition["value"]
 
-        # Проверяем, есть ли данные с указанного сенсора
+        # есть ли данные с указанного сенсора
         if sensor_name in sensor_data["common_sensors"]:
             current_value = sensor_data["common_sensors"][sensor_name].get("value")
             if current_value is None:
                 continue
 
-            # Проверка условия
+            
             if evaluate_condition(current_value, operator, target_value):
                 execute_action(action)
 
@@ -302,6 +302,7 @@ def device_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/toggle_scenario', methods=['POST'])
 def toggle_scenario():
     data = request.json
@@ -313,14 +314,31 @@ def toggle_scenario():
         return jsonify({"success": False, "message": "Invalid parameters"}), 400
 
     results = []
-    for device in devices:
+
+    for device_obj in devices:
         try:
+            device = device_obj.get("name")
+            state = device_obj.get("state")
+
+            if not device or not state:
+                results.append({
+                    "device": "Unknown",
+                    "success": False,
+                    "message": "Invalid device data"
+                })
+                continue
+
             room_name, device_name = device.split(": ")
             sanitized_name = f"device_{sanitize_name(room_name)}_{sanitize_name(device_name)}"
 
             container = client.containers.get(sanitized_name)
 
-            if action == "activate":
+            # Инверсия состояния для деактивации
+            if action == "deactivate":
+                state = "off" if state == "on" else "on"
+
+            # текущий статус устройства
+            if state == "on":
                 if container.status != "running":
                     container.start()
                     results.append({
@@ -331,10 +349,10 @@ def toggle_scenario():
                 else:
                     results.append({
                         "device": device,
-                        "success": False,
+                        "success": True,
                         "message": "Device is already running"
                     })
-            elif action == "deactivate":
+            elif state == "off":
                 if container.status == "running":
                     container.stop()
                     results.append({
@@ -345,8 +363,8 @@ def toggle_scenario():
                 else:
                     results.append({
                         "device": device,
-                        "success": False,
-                        "message": "Device is not running"
+                        "success": True,
+                        "message": "Device is already stopped"
                     })
 
         except docker.errors.NotFound:
@@ -368,6 +386,9 @@ def toggle_scenario():
         "message": f"Scenario {action}d {'successfully' if all_success else 'with some errors'}",
         "details": results
     })
+
+
+
 def is_device_without_sensor(device_name):
     forbidden_categories={'lighting':['lampa', 'shtory'],
                           'security':['signalizatsiia'],

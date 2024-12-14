@@ -309,8 +309,12 @@ QStringList DatabaseManager::getAllScenarios() {
     return scenarios;
 }
 bool DatabaseManager::addScenario(const QString &name, const QJsonArray &devices) {
+    QSqlDatabase db = QSqlDatabase::database();
     QSqlQuery query(db);
-    QString devicesJson = QString::fromUtf8(QJsonDocument(devices).toJson(QJsonDocument::Compact));
+
+    QJsonDocument devicesDoc(devices);  // Преобразуем массив в JSON-строку
+    QString devicesJson = devicesDoc.toJson(QJsonDocument::Compact);
+
     query.prepare("INSERT INTO scenarios (name, devices) VALUES (:name, :devices)");
     query.bindValue(":name", name);
     query.bindValue(":devices", devicesJson);
@@ -321,6 +325,7 @@ bool DatabaseManager::addScenario(const QString &name, const QJsonArray &devices
     }
     return true;
 }
+
 
 QJsonArray DatabaseManager::getDevicesByScenario(const QString &scenarioName) {
     QSqlDatabase db = QSqlDatabase::database();
@@ -345,6 +350,8 @@ QJsonArray DatabaseManager::getDevicesByScenario(const QString &scenarioName) {
 
     return QJsonArray();
 }
+
+
 
 
 QMap<QString, QStringList> DatabaseManager::getDevicesGroupedByType() {
