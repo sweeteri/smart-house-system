@@ -40,6 +40,20 @@ services:
       - app-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - ray
+  
+  # Сервис для Ray
+  ray:
+    image: rayproject/ray:latest  # Используем официальный образ Ray
+    command: ray start --head --num-cpus=2 --disable-usage-stats --block # Отключаем сбор статистики
+    ports:
+      - "8265:8265"  # Панель управления Ray
+    networks:
+      - app-network
+    tmpfs:
+      - /tmp/ray:mode=1777  # Используем временную файловую систему для папки Ray
+
     
 
 volumes:
