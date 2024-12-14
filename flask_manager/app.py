@@ -5,15 +5,85 @@ import unidecode
 import os
 import shutil
 import logging
-
+import requests
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 client = docker.from_env()
 
+AUTOMATION_RULES = [
+    {
+        "condition": {
+            "sensor": "sensor_kukhnia_temperature",
+            "operator": "<",
+            "value": 15
+        },
+        "action": {
+            "device": "device_kukhnia_obogrevatel",
+            "command": "on"
+        }
+    },
+    {
+        "condition": {
+            "sensor": "sensor_gostinaia_humidity",
+            "operator": ">",
+            "value": 70
+        },
+        "action": {
+            "device": "device_gostinaia_humidifier",
+            "command": "off"
+        }
+    }
+]
+def apply_automation_rules(sensor_data):
+    for rule in AUTOMATION_RULES:
+        condition = rule["condition"]
+        action = rule["action"]
+
+        sensor_name = condition["sensor"]
+        operator = condition["operator"]
+        target_value = condition["value"]
+
+        # есть ли данные с указанного сенсора
+        if sensor_name in sensor_data["common_sensors"]:
+            current_value = sensor_data["common_sensors"][sensor_name].get("value")
+            if current_value is None:
+                continue
+
+            
+            if evaluate_condition(current_value, operator, target_value):
+                execute_action(action)
+
+def evaluate_condition(current_value, operator, target_value):
+    if operator == "<":
+        return current_value < target_value
+    elif operator == ">":
+        return current_value > target_value
+    elif operator == "==":
+        return current_value == target_value
+    return False
+
+def execute_action(action):
+    device = action["device"]
+    command = action["command"]
+
+    try:
+        container = client.containers.get(device)
+        if command == "on":
+            container.start()
+        elif command == "off":
+            container.stop()
+        print(f"Action executed: {device} -> {command}")
+    except docker.errors.NotFound:
+        print(f"Device {device} not found")
+    except Exception as e:
+        print(f"Error executing action for {device}: {str(e)}")
+
 def sanitize_name(name):
     sanitized = unidecode.unidecode(name)
     sanitized = re.sub(r'[^a-zA-Z0-9_-]', '_', sanitized)
+    if sanitized[-1]=='_':
+        sanitized = sanitized[:-1]
     return sanitized.lower()
 
 def select_template(device_type, device_name):
@@ -232,6 +302,7 @@ def device_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/toggle_scenario', methods=['POST'])
 def toggle_scenario():
     data = request.json
@@ -243,14 +314,31 @@ def toggle_scenario():
         return jsonify({"success": False, "message": "Invalid parameters"}), 400
 
     results = []
-    for device in devices:
+
+    for device_obj in devices:
         try:
+            device = device_obj.get("name")
+            state = device_obj.get("state")
+
+            if not device or not state:
+                results.append({
+                    "device": "Unknown",
+                    "success": False,
+                    "message": "Invalid device data"
+                })
+                continue
+
             room_name, device_name = device.split(": ")
             sanitized_name = f"device_{sanitize_name(room_name)}_{sanitize_name(device_name)}"
 
             container = client.containers.get(sanitized_name)
 
-            if action == "activate":
+            # Инверсия состояния для деактивации
+            if action == "deactivate":
+                state = "off" if state == "on" else "on"
+
+            # текущий статус устройства
+            if state == "on":
                 if container.status != "running":
                     container.start()
                     results.append({
@@ -261,10 +349,10 @@ def toggle_scenario():
                 else:
                     results.append({
                         "device": device,
-                        "success": False,
+                        "success": True,
                         "message": "Device is already running"
                     })
-            elif action == "deactivate":
+            elif state == "off":
                 if container.status == "running":
                     container.stop()
                     results.append({
@@ -275,8 +363,8 @@ def toggle_scenario():
                 else:
                     results.append({
                         "device": device,
-                        "success": False,
-                        "message": "Device is not running"
+                        "success": True,
+                        "message": "Device is already stopped"
                     })
 
         except docker.errors.NotFound:
@@ -298,6 +386,68 @@ def toggle_scenario():
         "message": f"Scenario {action}d {'successfully' if all_success else 'with some errors'}",
         "details": results
     })
+
+
+
+def is_device_without_sensor(device_name):
+    forbidden_categories={'lighting':['lampa', 'shtory'],
+                          'security':['signalizatsiia'],
+                          'household_appliances':['kofemashina', 'robot-pylesos', 'kolonka']}
+    for category in forbidden_categories:
+        for device in forbidden_categories[category]:
+            if device_name.startswith(device):
+                return True
+    return False
+@app.route('/sensor_values', methods=['GET'])
+def get_sensor_values():
+    room_names = {
+        c.name.split('_')[1]
+        for c in client.containers.list()
+        if c.name.startswith("device_") or c.name.startswith("sensor_")
+    }
+
+    sensor_values = {"common_sensors": {}, "device_sensors": {}}
+
+    for room_name in room_names:
+        sanitized_room_name = sanitize_name(room_name)
+
+        # Опрашиваем общие датчики (температура, влажность)
+        common_sensors = [f"sensor_{sanitized_room_name}_temperature", f"sensor_{sanitized_room_name}_humidity"]
+        for sensor_name in common_sensors:
+            try:
+                container = client.containers.get(sensor_name)
+                if container.status == "running":
+                    response = requests.get(f"http://{sensor_name}:5000/sensor_data")  # Запрос данных
+                    sensor_values["common_sensors"][sensor_name] = response.json()
+                else:
+                    sensor_values["common_sensors"][sensor_name] = {"error": "Sensor not running"}
+            except docker.errors.NotFound:
+                sensor_values["common_sensors"][sensor_name] = {"error": "Sensor not found"}
+            except Exception as e:
+                sensor_values["common_sensors"][sensor_name] = {"error": str(e)}
+
+        # Опрашиваем устройства с датчиками
+        device_containers = [c for c in client.containers.list() if c.name.startswith(f"device_{sanitized_room_name}_")]
+        for device_container in device_containers:
+            device_name = device_container.name.split(f"device_{sanitized_room_name}_")[-1]
+
+            # Исключаем устройства без датчиков
+            if is_device_without_sensor(device_name):
+                continue
+
+            try:
+                # Запрос данных с устройства
+                response = requests.get(f"http://{device_container.name}:5000/sensor_data")
+                if response.status_code == 200:
+                    sensor_values["device_sensors"][device_container.name] = response.json()
+                else:
+                    sensor_values["device_sensors"][device_container.name] = {"error": f"Status code {response.status_code}"}
+            except Exception as e:
+                sensor_values["device_sensors"][device_container.name] = {"error": str(e)}
+    apply_automation_rules(sensor_values)
+    return jsonify(sensor_values)
+
+
 
 
 if __name__ == '__main__':

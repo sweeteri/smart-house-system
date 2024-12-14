@@ -9,6 +9,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QStackedWidget>
+#include <QNetworkReply>
 
 class MainWindow : public QWidget
 {
@@ -33,6 +34,8 @@ private slots:
     void onAddScenarioButtonClicked();
     void onRoomSensorsButtonClicked();
     void requestRoomDevices(const QString &roomName);
+    void updateSensorData();
+    void handleSensorDataResponse(const QJsonObject &response);
     void handleLoadAllDevicesForScenarios(const QJsonObject &response);
     void handleServerResponse(const QJsonObject &response);
     void handleLoadRoomsResponse(const QJsonObject &response);
@@ -64,11 +67,11 @@ private:
     QVBoxLayout *roomButtonsLayout;
     QStackedWidget *displayWidget;
     QGridLayout *gridLayout;
-
+    QTimer *updateTimer;
     QString userRole;
     QString currentRoom;
     QMap<QString, QVector<QString>> roomDevices;
-
+    void setupUpdateTimer();
     void initUI();
     void configureUIBasedOnRole();
     void displayItemsInGrid(const QVector<QString> &items, const QString roomName, bool isDevices);

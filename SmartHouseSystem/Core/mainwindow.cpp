@@ -11,7 +11,7 @@
 #include <QGraphicsDropShadowEffect>
 #include <QStackedWidget>
 #include <QFontDatabase>
-
+#include <QTimer>
 #include <QMenu>
 #include <QAction>
 #include <QCoreApplication>
@@ -33,7 +33,9 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
         &NetworkManager::responseReceived,
         this,
         &MainWindow::handleServerResponse);
+    connect(&NetworkManager::instance(), &NetworkManager::httpResponseReceived, this, &MainWindow::updateSensorData);
     loadRoomsFromDatabase();
+    setupUpdateTimer();
 }
 void MainWindow::setUserRole(const QString &role) {
     userRole = role;
@@ -45,6 +47,12 @@ void MainWindow::configureUIBasedOnRole() {
     addRoomButton->setVisible(isAdmin);
     addDeviceButton->setVisible(isAdmin);
     addScenarioButton->setVisible(isAdmin);
+
+}
+void MainWindow::setupUpdateTimer(){
+    updateTimer = new QTimer(this);
+    connect(updateTimer, &QTimer::timeout, this, &MainWindow::updateSensorData);
+    updateTimer->start(3000000);
 }
 
 MainWindow::~MainWindow() {}
@@ -56,6 +64,7 @@ auto addShadowEffect = [](QPushButton* button) {
     shadowEffect->setBlurRadius(5);
     button->setGraphicsEffect(shadowEffect);
 };
+
 void MainWindow::initUI() {
     logoutButton = new QPushButton("Выйти", this);
     connect(logoutButton, &QPushButton::clicked, this, [this](){ emit backToMain(); });
@@ -132,7 +141,7 @@ void MainWindow::initUI() {
     resize(800, 600);
 
     currentRoom = QString();
-
+    QTimer *updateTimer;
     addShadowEffect(scenarioButton);
     addShadowEffect(allDevicesButton);
     addShadowEffect(addDeviceButton);
@@ -164,6 +173,14 @@ void MainWindow::initUI() {
     addRoomButton->setStyleSheet(buttonStyle);
     addDeviceButton ->setStyleSheet(buttonStyle);
     addScenarioButton->setStyleSheet(buttonStyle);
+
+}
+
+void MainWindow::updateSensorData() {
+    NetworkManager &networkManager = NetworkManager::instance();
+    networkManager.sendGetRequest(QUrl("http://127.0.0.1:5000/sensor_values"));
+    connect(&networkManager, &NetworkManager::responseReceived, this, &MainWindow::handleSensorDataResponse);
+    qDebug()<<"Request to flask sent";
 }
 
 void MainWindow::loadRoomsFromDatabase()
@@ -171,6 +188,7 @@ void MainWindow::loadRoomsFromDatabase()
     QJsonObject request;
     request["action"] = "loadRooms";
     NetworkManager::instance().sendRequest(request);
+
 }
 
 
@@ -249,13 +267,37 @@ void MainWindow::onAddScenarioButtonClicked() {
 
     QVBoxLayout *dialogLayout = new QVBoxLayout(scenarioDialog);
 
+
     QListWidget *availableDevices = new QListWidget(scenarioDialog);
     availableDevices->setSelectionMode(QAbstractItemView::SingleSelection);
     availableDevices->setDragEnabled(true);
 
+
     QListWidget *scenarioField = new QListWidget(scenarioDialog);
     scenarioField->setAcceptDrops(true);
     scenarioField->setDragDropMode(QAbstractItemView::DropOnly);
+
+
+    connect(availableDevices, &QListWidget::itemDoubleClicked, this, [=](QListWidgetItem *item) {
+        if (item) {
+
+            QPushButton *controlButton = new QPushButton(item->text() + " - On", scenarioField);
+            controlButton->setFixedWidth(250);
+
+
+            scenarioField->addItem("");
+            scenarioField->setItemWidget(scenarioField->item(scenarioField->count() - 1), controlButton);
+
+
+            connect(controlButton, &QPushButton::clicked, [controlButton]() {
+                if (controlButton->text().endsWith("On")) {
+                    controlButton->setText(controlButton->text().replace("On", "Off"));
+                } else {
+                    controlButton->setText(controlButton->text().replace("Off", "On"));
+                }
+            });
+        }
+    });
 
     QVBoxLayout *availableLayout = new QVBoxLayout();
     availableLayout->addWidget(new QLabel("Доступные устройства:"));
@@ -280,6 +322,7 @@ void MainWindow::onAddScenarioButtonClicked() {
     buttonsLayout->addWidget(cancelButton);
 
     dialogLayout->addLayout(buttonsLayout);
+
 
     QJsonObject request;
     request["action"] = "loadScenarioDevices";
@@ -307,43 +350,55 @@ void MainWindow::onAddScenarioButtonClicked() {
         }
     });
     connect(saveButton, &QPushButton::clicked, this, [this, scenarioField, scenarioDialog]() {
-        QStringList scenarioDevices;
-        for (int i = 0; i < scenarioField->count(); ++i) {
-            scenarioDevices << scenarioField->item(i)->text();
+        QString scenarioName = QInputDialog::getText(scenarioDialog, "Имя сценария", "Введите имя сценария:");
+
+        if (!scenarioName.isEmpty()) {
+            QJsonObject devicesObject;
+
+            for (int i = 0; i < scenarioField->count(); ++i) {
+                QWidget *widget = scenarioField->itemWidget(scenarioField->item(i));
+                QPushButton *controlButton = qobject_cast<QPushButton *>(widget);
+
+                if (controlButton) {
+
+                    QString fullDeviceName = controlButton->text().split(" - ")[0];
+                    QString deviceName = fullDeviceName.trimmed();
+
+                    QString state = controlButton->text().endsWith("On") ? "on" : "off";
+
+
+                    devicesObject[deviceName] = state;
+                }
+            }
+
+
+            QJsonObject request;
+            request["action"] = "addScenario";
+            request["scenarioName"] = scenarioName;
+            request["devices"] = devicesObject;
+
+            QJsonDocument jsonDoc(request);
+            QString jsonString = jsonDoc.toJson(QJsonDocument::Compact);
+
+
+            qDebug() << "Сформированный JSON:" << jsonString;
+
+
+            NetworkManager::instance().sendRequest(request);
+
+            QMessageBox::information(scenarioDialog, "Успех", "Сценарий успешно сохранен.");
+            scenarioDialog->accept();
+        } else {
+            QMessageBox::warning(scenarioDialog, "Ошибка", "Имя сценария не может быть пустым.");
         }
-
-        if (scenarioDevices.isEmpty()) {
-            QMessageBox::warning(this, "Ошибка", "Сценарий не может быть пустым.");
-            return;
-        }
-
-        QString scenarioName = QInputDialog::getText(this, "Добавить сценарий", "Введите имя сценария:");
-        if (scenarioName.isEmpty()) {
-            QMessageBox::warning(this, "Ошибка", "Имя сценария не может быть пустым.");
-            return;
-        }
-
-        // Формируем запрос на сохранение сценария
-        QJsonObject request;
-        request["action"] = "addScenario";
-        request["scenarioName"] = scenarioName;
-
-        QJsonArray devicesArray;
-        for (const QString &device : scenarioDevices) {
-            devicesArray.append(device);
-        }
-        request["devices"] = devicesArray;
-
-        NetworkManager::instance().sendRequest(request);
-
-        QMessageBox::information(this, "Информация", "Сценарий успешно сохранен!");
-        scenarioDialog->accept();
     });
 
-    connect(cancelButton, &QPushButton::clicked, scenarioDialog, &QDialog::reject);
 
+    connect(cancelButton, &QPushButton::clicked, scenarioDialog, &QDialog::reject);
     scenarioDialog->exec();
 }
+
+
 
 void MainWindow::handleServerResponse(const QJsonObject &response)
 {
@@ -370,9 +425,52 @@ void MainWindow::handleServerResponse(const QJsonObject &response)
         handleLoadAllDevicesForScenarios(response);
     }else if (action=="loadRoomSensors"){
         handleLoadRoomSensorsResponse(response);
+
+    }else if (action=="loadAllSensorData"){
+        handleSensorDataResponse(response);
     }
 
 }
+
+void MainWindow::handleSensorDataResponse(const QJsonObject &response) {
+    qDebug() << "Received response from Flask:" << response;
+
+    // Проверяем наличие данных по сенсорам комнат
+    /*if (response.contains("common_sensors") && response["common_sensors"].isObject()) {
+        QJsonObject roomSensors = response["common_sensors"].toObject();
+        QVector<QString> sensors;
+
+        for (const QString &room : roomSensors.keys()) {
+            QStringList sensorList;
+            QJsonObject sensorsInRoom = roomSensors[room].toObject();
+
+            for (const QString &sensorType : sensorsInRoom.keys()) {
+                QString sensorValue = sensorsInRoom[sensorType].toString();
+                sensorList.append(sensorType + " (" + sensorValue + ")");
+            }
+
+            if (!sensorList.isEmpty()) {
+                sensors.append(room + ": " + sensorList.join(", "));
+            }
+        }
+
+        // Обновляем интерфейс для сенсоров
+        if (!sensors.isEmpty()) {
+            displayAllSensorsInGrid(sensors);
+        } else {
+            qDebug() << "No sensors data for rooms.";
+        }
+    } else {
+        qDebug() << "No room_sensors data in response.";
+
+    }
+
+    if (response.contains("error")) {
+        qWarning() << "Error in response:" << response["error"].toString();
+    }*/
+}
+
+
 void MainWindow::handleToggleDeviceResponse(const QJsonObject &response)
 {
     QString deviceName = response["deviceName"].toString();
