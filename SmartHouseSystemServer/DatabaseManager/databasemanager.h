@@ -24,6 +24,9 @@ public:
 
     bool addRoom(const QString &roomName);
     bool addDevice(const QString &roomName, const QString &deviceType, QString &generatedDeviceName, QString &deviceGroup, QJsonObject &parameters);
+
+    bool addScenario(const QString &scenario);
+
     QMap<QString, QStringList> getAllRoomSensors();
     QMap<QString, QStringList> getAllDevices();
     QStringList getAllRooms();

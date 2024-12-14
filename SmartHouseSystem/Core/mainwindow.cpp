@@ -47,12 +47,14 @@ void MainWindow::configureUIBasedOnRole() {
     addRoomButton->setVisible(isAdmin);
     addDeviceButton->setVisible(isAdmin);
     addScenarioButton->setVisible(isAdmin);
+
 }
 void MainWindow::setupUpdateTimer(){
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, &MainWindow::updateSensorData);
     updateTimer->start(3000000);
 }
+
 MainWindow::~MainWindow() {}
 
 auto addShadowEffect = [](QPushButton* button) {
@@ -171,6 +173,7 @@ void MainWindow::initUI() {
     addRoomButton->setStyleSheet(buttonStyle);
     addDeviceButton ->setStyleSheet(buttonStyle);
     addScenarioButton->setStyleSheet(buttonStyle);
+
 }
 
 void MainWindow::updateSensorData() {
@@ -422,6 +425,7 @@ void MainWindow::handleServerResponse(const QJsonObject &response)
         handleLoadAllDevicesForScenarios(response);
     }else if (action=="loadRoomSensors"){
         handleLoadRoomSensorsResponse(response);
+
     }else if (action=="loadAllSensorData"){
         handleSensorDataResponse(response);
     }
@@ -458,6 +462,7 @@ void MainWindow::handleSensorDataResponse(const QJsonObject &response) {
         }
     } else {
         qDebug() << "No room_sensors data in response.";
+
     }
 
     if (response.contains("error")) {

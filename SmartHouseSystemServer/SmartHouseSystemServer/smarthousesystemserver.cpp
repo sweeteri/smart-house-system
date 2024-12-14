@@ -434,8 +434,6 @@ void SmartHouseSystemServer::processLoadRoomSensors(QTcpSocket *socket, const QJ
     socket->flush();
 }
 
-
-
 void SmartHouseSystemServer::sendRequestToFlask(const QJsonObject &request, const QString &endpoint) {
     QUrl url("http://127.0.0.1:5000/" + endpoint);
     QNetworkRequest flaskRequest(url);
