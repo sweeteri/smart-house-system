@@ -40,6 +40,20 @@ services:
       - app-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - ray
+  
+  # Сервис для Ray
+  ray:
+    image: rayproject/ray:latest
+    command: ray start --head --num-cpus=2 --disable-usage-stats --block 
+    ports:
+      - "8265:8265"
+    networks:
+      - app-network
+    tmpfs:
+      - /tmp/ray:mode=1777 
+
     
 
 volumes:
@@ -53,4 +67,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-

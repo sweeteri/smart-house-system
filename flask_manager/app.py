@@ -1,3 +1,4 @@
+import ray
 from flask import Flask, request, jsonify
 import docker
 import re
@@ -7,6 +8,7 @@ import shutil
 import logging
 import requests
 
+ray.init()
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 client = docker.from_env()
@@ -35,24 +37,37 @@ AUTOMATION_RULES = [
         }
     }
 ]
+
+@ray.remote
+def process_rule(rule, sensor_data):
+    condition = rule["condition"]
+    action = rule["action"]
+
+    sensor_name = condition["sensor"]
+    operator = condition["operator"]
+    target_value = condition["value"]
+
+    # Проверка наличия данных с сенсора
+    if sensor_name in sensor_data["common_sensors"]:
+        current_value = sensor_data["common_sensors"][sensor_name].get("value")
+        if current_value is None:
+            return False  # Пропустить, если данных нет
+
+        # Проверка условия и выполнение действия
+        if evaluate_condition(current_value, operator, target_value):
+            execute_action(action)
+            return True
+    return False
+
+@ray.remote
 def apply_automation_rules(sensor_data):
+    tasks = []
+
     for rule in AUTOMATION_RULES:
-        condition = rule["condition"]
-        action = rule["action"]
+        tasks.append(process_rule.remote(rule, sensor_data))
 
-        sensor_name = condition["sensor"]
-        operator = condition["operator"]
-        target_value = condition["value"]
+    ray.get(tasks)
 
-        # есть ли данные с указанного сенсора
-        if sensor_name in sensor_data["common_sensors"]:
-            current_value = sensor_data["common_sensors"][sensor_name].get("value")
-            if current_value is None:
-                continue
-
-            
-            if evaluate_condition(current_value, operator, target_value):
-                execute_action(action)
 
 def evaluate_condition(current_value, operator, target_value):
     if operator == "<":
@@ -63,6 +78,7 @@ def evaluate_condition(current_value, operator, target_value):
         return current_value == target_value
     return False
 
+@ray.remote
 def execute_action(action):
     device = action["device"]
     command = action["command"]
@@ -101,6 +117,7 @@ def select_template(device_type, device_name):
     return 'not found'
 
 
+@ray.remote
 def create_or_start_room_sensor(room_name, sensor_type):
     sanitized_room_name = sanitize_name(room_name)
     container_name = f"sensor_{sanitized_room_name}_{sensor_type}"
@@ -140,7 +157,7 @@ def create_or_start_room_sensor(room_name, sensor_type):
             dockerfile.write(dockerfile_content)
 
         image, _ = client.images.build(path=build_dir, tag=f"{container_name}:latest")
-        network_name = "smarthousesystem_app-network"
+        network_name = "smart-house-system_app-network"
         container = client.containers.create(
             image=container_name,
             name=container_name,
@@ -211,7 +228,7 @@ def create_image():
         for log in build_logs:
             logging.debug(log)
 
-        network_name = "smarthousesystem_app-network"
+        network_name = "smart-house-system_app-network"
         networks = [n.name for n in client.networks.list()]
         logging.debug(f"Available networks: {networks}")
         if network_name not in networks:
