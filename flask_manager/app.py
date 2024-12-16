@@ -39,14 +39,34 @@ AUTOMATION_RULES = [
 ]
 
 @ray.remote
-def apply_automation_rules(sensor_data):
-    futures = [
-        apply_automation_rules.remote(sensor_data, rule)
-        for rule in AUTOMATION_RULES
-    ]
-    results = ray.get(futures)
-    return results
+def process_rule(rule, sensor_data):
+    condition = rule["condition"]
+    action = rule["action"]
 
+    sensor_name = condition["sensor"]
+    operator = condition["operator"]
+    target_value = condition["value"]
+
+    # Проверка наличия данных с сенсора
+    if sensor_name in sensor_data["common_sensors"]:
+        current_value = sensor_data["common_sensors"][sensor_name].get("value")
+        if current_value is None:
+            return False  # Пропустить, если данных нет
+
+        # Проверка условия и выполнение действия
+        if evaluate_condition(current_value, operator, target_value):
+            execute_action(action)
+            return True
+    return False
+
+@ray.remote
+def apply_automation_rules(sensor_data):
+    tasks = []
+
+    for rule in AUTOMATION_RULES:
+        tasks.append(process_rule.remote(rule, sensor_data))
+
+    ray.get(tasks)
 
 
 def evaluate_condition(current_value, operator, target_value):
