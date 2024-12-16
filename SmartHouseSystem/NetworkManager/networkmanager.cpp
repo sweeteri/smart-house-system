@@ -59,9 +59,9 @@ void NetworkManager::sendHttpRequest(const QUrl &url, const QJsonObject &request
     QByteArray jsonData = doc.toJson();
 
     QNetworkReply *reply = httpManager->post(networkRequest, jsonData);
-    connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), [reply]() {
-        qWarning() << "HTTP request error:" << reply->errorString();
-    });
+    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+            this, SLOT(handleNetworkError(QNetworkReply::NetworkError)));
+
 }
 void NetworkManager::onHttpReplyFinished(QNetworkReply *reply) {
     if (reply->error() == QNetworkReply::NoError) {
